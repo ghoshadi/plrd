@@ -1,0 +1,41 @@
+# Run CI for R using https://eddelbuettel.github.io/r-ci/
+
+name: Test R package
+
+on:
+  push:
+    branches: main
+  pull_request:
+    branches: main
+
+jobs:
+  ci:
+    runs-on: macOS-latest
+    env:
+      USE_BSPM: true
+      _R_CHECK_FORCE_SUGGESTS_: false
+      _R_CHECK_DONTTEST_EXAMPLES_: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup R
+        run: |
+          curl -OLs https://eddelbuettel.github.io/r-ci/run.sh
+          chmod 0755 run.sh
+          ./run.sh bootstrap
+          ./run.sh install_all
+
+      - name: Test
+        run: |
+          ./run.sh run_tests
+          # Treat WARNING and NOTE as error, ignoring one benign NOTE
+          issues=$(find . -name '*00check.log' -exec cat {} \; | grep 'WARNING\|NOTE' | grep -v 'checking for future file timestamps' | grep -v '^Status: [0-9]\+ NOTE' || true)
+          if [ -n "$issues" ]; then
+            echo "Found warnings/notes, treating as errors:"
+            echo "$issues"
+            exit 1
+          fi
+
+      - name: Print logs
+        if: failure()
+        run: ./run.sh dump_logs
