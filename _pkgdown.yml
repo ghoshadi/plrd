@@ -9,3 +9,11 @@ navbar:
     href: articles/plrd.html
   - text: "Reference"
     href: reference/index.html
+
+reference:
+    contents:
+      - plrd
+      - IK_bandwidth
+      - print
+      - summary
+      - plot
