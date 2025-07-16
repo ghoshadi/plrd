@@ -1,0 +1,52 @@
+name: Deploy pkgdown
+
+on:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: macOS-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install pandoc
+        uses: r-lib/actions/setup-pandoc@v2
+      - name: Build docs
+        working-directory: plrd
+        run: |
+          # Install R
+          curl -OLs https://eddelbuettel.github.io/r-ci/run.sh
+          chmod 0755 run.sh
+          ./run.sh bootstrap
+          ./run.sh install_all
+
+          # Install packave
+          R CMD INSTALL .
+
+          # Setup pkgdown
+          sudo Rscript -e "install.packages('pkgdown')"
+
+          # Build site
+          Rscript -e "pkgdown::build_site()"
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'plrd/docs'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

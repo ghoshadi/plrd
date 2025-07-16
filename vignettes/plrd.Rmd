@@ -1,0 +1,32 @@
+---
+title: "Introduction to plrd"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{rdsurvival}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+set.seed(123)
+```
+
+```{r setup}
+library(plrd)
+```
+
+```{r}
+# Simple example of regression discontinuity design
+set.seed(42)
+n = 1000; threshold = 0
+X = runif(n, -1, 1)
+W = as.numeric(X >= threshold)
+Y = (1 + 2*W)*(1 + X^2) + 1 / (1 + exp(X)) + rnorm(n, sd = .5)
+out = plrd(Y, X, threshold)
+print(out)
+plot(out)
+```

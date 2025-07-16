@@ -4,3 +4,7 @@
 ^Experiments
 ^README\.md$
 ^.github
+^pkgdown$
+^_pkgdown\.yml$
+^docs$
+^vignettes$

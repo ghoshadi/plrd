@@ -1,0 +1,11 @@
+url: https://ghoshadi.io/plrd/
+template:
+  bootstrap: 5
+  math-rendering: mathjax
+
+navbar:
+  left:
+  - text: "Get started"
+    href: articles/plrd.html
+  - text: "Reference"
+    href: reference/index.html
