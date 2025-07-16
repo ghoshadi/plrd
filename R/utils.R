@@ -5,7 +5,6 @@
 #' @param alpha Coverage probability of confidence interval.
 #'
 #' @return Half-width of confidence interval.
-#' @export
 get.plusminus = function(max.bias, sampling.se, alpha = 0.95) {
   rel.bias = max.bias/sampling.se
   zz = stats::uniroot(function(z) stats::pnorm(rel.bias - z) +
@@ -22,7 +21,6 @@ get.plusminus = function(max.bias, sampling.se, alpha = 0.95) {
 #' @param diff.curvatures Whether we consider different curvatures before and after the threshold.
 #' @param alpha.B Significance threshold we use in estimation of the Lipschitz constant.
 #' @return Lipschitz constant for the conditional response functions.
-#' @export
 #'
 get.Lipschitz.constant <- function(y, x, threshold,
                                    diff.curvatures = F, alpha.B = 0.05){
