@@ -107,7 +107,7 @@ plot.plrd = function(x, percentage.cumulative.weights = .99, ...) {
       args$ylab = "Y (response)"
     }
     args$x = NA; args$y = NA
-    graphics::layout(matrix(1:2, ncol = 1), heights = c(3, 2))
+    graphics::layout(matrix(1:2, ncol = 1), heights = c(4, 3))
     graphics::par(mar = c(0, 4.5, 2, 2))
     do.call(graphics::plot, c(args, xaxt = "n"))
     graphics::points(x$X, x$Y,
