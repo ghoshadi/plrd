@@ -55,9 +55,9 @@ plrd <- function (Y, X, threshold, W = NULL,
                   spline.df = 40,
                   seed = 42,
                   use.homoskedastic.variance = FALSE,
-                  verbose = FALSE) 
+                  verbose = FALSE)
   {
-  # Input checks:    
+  # Input checks:
   X = as.vector(X); Y = as.vector(Y)
   if(length(X)!=length(Y)){
     stop("Error: Running variable (X) and response (Y) cannot have different lengths!")
@@ -250,7 +250,8 @@ plrd <- function (Y, X, threshold, W = NULL,
 #'
 #' @return Parts of the desired plrd object for the specific sample split
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 plrd.optim <- function (Y = NULL, X = NULL, threshold = NULL, W = NULL,
                         Lipschitz.constant = NULL,
                         sigma.sq = NULL,

@@ -14,7 +14,6 @@ reference:
   - title: "Core functions"
     contents:
       - plrd
-      - plrd.optim
       - IK_bandwidth
 
   - title: "S3 methods"
