@@ -25,7 +25,6 @@ jobs:
       - name: Install pandoc
         uses: r-lib/actions/setup-pandoc@v2
       - name: Build docs
-        working-directory: plrd
         run: |
           # Install R
           curl -OLs https://eddelbuettel.github.io/r-ci/run.sh
