@@ -11,9 +11,13 @@ navbar:
     href: reference/index.html
 
 reference:
+  - title: "Core functions"
     contents:
       - plrd
       - IK_bandwidth
-      - print
-      - summary
-      - plot
+
+  - title: "S3 methods"
+    contents:
+      - print.plrd
+      - summary.plrd
+      - plot.plrd
