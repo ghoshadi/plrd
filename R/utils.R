@@ -3,8 +3,8 @@
 #' @param max.bias Worst-case bias of estimate.
 #' @param sampling.se Sampling error of estimate.
 #' @param alpha Coverage probability of confidence interval.
-#'
 #' @return Half-width of confidence interval.
+#' @keywords internal
 get.plusminus = function(max.bias, sampling.se, alpha = 0.95) {
   rel.bias = max.bias/sampling.se
   zz = stats::uniroot(function(z) stats::pnorm(rel.bias - z) +
@@ -21,7 +21,7 @@ get.plusminus = function(max.bias, sampling.se, alpha = 0.95) {
 #' @param diff.curvatures Whether we consider different curvatures before and after the threshold.
 #' @param alpha.B Significance threshold we use in estimation of the Lipschitz constant.
 #' @return Lipschitz constant for the conditional response functions.
-#'
+#' @keywords internal
 get.Lipschitz.constant <- function(y, x, threshold,
                                    diff.curvatures = F, alpha.B = 0.05){
   xc = x - threshold; w = xc >= 0

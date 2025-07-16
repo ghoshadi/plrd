@@ -23,3 +23,4 @@ Lipschitz constant for the conditional response functions.
 \description{
 Function estimating the Lipschitz constant for the conditional response functions
 }
+\keyword{internal}

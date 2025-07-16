@@ -19,3 +19,4 @@ Half-width of confidence interval.
 \description{
 Bias-adjusted Gaussian confidence intervals.
 }
+\keyword{internal}
