@@ -28,3 +28,7 @@ plot(out)
 #### References
 Aditya Ghosh, Guido Imbens and Stefan Wager.
 <b>PLRD : Partially Linear Regression Discontinuity Inference.</b>, arXiv preprint arXiv:2503.09907.
+
+
+#### Funding
+Development of this software was supported by the National Science Foundation under grant number SES-2242876.
