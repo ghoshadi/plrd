@@ -4,7 +4,8 @@ Version: 0.0.1
 Authors@R: c(
     person("Aditya", "Ghosh", role = c("aut", "cre"), email = "ghoshadi@stanford.edu"),
     person("Guido", "Imbens", role = "aut"),
-    person("Stefan", "Wager", role = "aut")
+    person("Stefan", "Wager", role = "aut"),
+    person("Erik", "Sverdrup", role = "aut")
     )
 Description: Estimation and inference for regression discontinuity designs as proposed by Ghosh, Imbens, and Wager (2025) <doi:10.48550/arXiv.2503.09907>.
 License: MIT + file LICENSE
