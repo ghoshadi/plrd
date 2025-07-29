@@ -1,11 +1,10 @@
 # plrd
 Partially Linear Regression Discontinuity Inference, as proposed by Ghosh, Imbens and Wager (2025).
 
-To install this package in R, run the following commands:
+The development version of this package can be installed using devtools:
 
 ```R
-library(devtools) 
-install_github("ghoshadi/plrd")
+devtools::install_github("ghoshadi/plrd")
 ```
 Replication files for Ghosh, Imbens and Wager (2025) are available in
 the directory `Experiments`.
@@ -14,7 +13,7 @@ Example usage:
 
 ```R
 library(plrd)
-# Simple example of regression discontinuity design 
+# Simple example of regression discontinuity design
 set.seed(42)
 n = 1000; threshold = 0
 X = runif(n, -1, 1)
@@ -27,7 +26,7 @@ plot(out)
 
 #### References
 Aditya Ghosh, Guido Imbens and Stefan Wager.
-<b>PLRD : Partially Linear Regression Discontinuity Inference.</b>, arXiv preprint arXiv:2503.09907.
+<b>PLRD : Partially Linear Regression Discontinuity Inference.</b>, [arXiv preprint arXiv:2503.09907](https://arxiv.org/abs/2503.09907).
 
 
 #### Funding
