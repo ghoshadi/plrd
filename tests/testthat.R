@@ -9,4 +9,7 @@
 library(testthat)
 library(plrd)
 
+# Treat warnings as errors
+old <- options(warn = 2)
 test_check("plrd")
+options(old)
