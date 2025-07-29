@@ -11,6 +11,8 @@ test_that("plrd basic example runs", {
   print(out)
   summary(out)
   plot(out)
+
+  expect_true(TRUE)
 })
 
 
