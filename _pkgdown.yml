@@ -17,6 +17,7 @@ reference:
 
   - title: "S3 methods"
     contents:
+      - coef.plrd
       - print.plrd
       - summary.plrd
       - plot.plrd
