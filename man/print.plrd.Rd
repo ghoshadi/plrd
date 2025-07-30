@@ -4,14 +4,14 @@
 \alias{print.plrd}
 \title{Print a plrd object}
 \usage{
-\method{print}{plrd}(x, digits = NULL, ...)
+\method{print}{plrd}(x, digits = max(3L, getOption("digits") - 3L), ...)
 }
 \arguments{
 \item{x}{plrd object}
 
 \item{digits}{number of digits to print}
 
-\item{...}{Additional arguments (currently ignored).}
+\item{...}{Additional arguments passed to print methods.}
 }
 \description{
 Print a plrd object
