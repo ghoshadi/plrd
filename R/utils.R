@@ -72,7 +72,17 @@ print.plrd = function(x, digits = NULL, ...) {
 #' @param ... Additional arguments (currently ignored).
 #' @export
 summary.plrd = function(object, ...) {
-  unlist(object)[1:6]
+
+  out = data.frame(
+    Estimate = object$tau.hat,
+    `CI Lower` = object$ci.lower,
+    `CI Upper` = object$ci.upper,
+    `p-value` = object$pval,
+    check.names = FALSE
+  )
+  rownames(out) = "RD Estimate"
+
+  out
 }
 
 #' Plot a plrd object
