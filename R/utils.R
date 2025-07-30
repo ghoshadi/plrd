@@ -50,6 +50,14 @@ get.Lipschitz.constant <- function(y, x, threshold,
   return(B_hat <- max(B, eps))
 }
 
+#' Extract plrd coefficient
+#' @param x plrd object
+#' @param ... Additional arguments (currently ignored).
+#' @export
+coef.plrd = function(object, ...) {
+  c(estimate = object$tau.hat)
+}
+
 #' Print a plrd object
 #' @param x plrd object
 #' @param digits number of digits to print
@@ -73,7 +81,6 @@ print.plrd = function(x, digits = max(3L, getOption("digits") - 3L), ...) {
 #' @param ... Additional arguments (currently ignored).
 #' @export
 summary.plrd = function(object, ...) {
-
   out = data.frame(
     Estimate = object$tau.hat,
     `CI Lower` = object$ci.lower,
