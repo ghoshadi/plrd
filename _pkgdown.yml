@@ -14,10 +14,13 @@ reference:
   - title: "Core functions"
     contents:
       - plrd
-      - IK_bandwidth
 
   - title: "S3 methods"
     contents:
       - print.plrd
       - summary.plrd
       - plot.plrd
+
+  - title: "Utilities"
+    contents:
+      - IK_bandwidth

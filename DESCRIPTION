@@ -18,3 +18,5 @@ Imports:
     withr
 Suggests:
     testthat (>= 3.0.0)
+URL: https://github.com/ghoshadi/plrd
+BugReports: https://github.com/ghoshadi/plrd/issues

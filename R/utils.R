@@ -167,7 +167,7 @@ plot.plrd = function(x, percentage.cumulative.weights = .99, ...) {
 #' X = runif(n, -1, 1)
 #' W = as.numeric(X >= threshold)
 #' Y = (1 + 2*W)*(1 + X^2) + 1 / (1 + exp(X)) + rnorm(n, sd = .5)
-#' IK_bandwidth(Y, X, threshold)
+#' out = IK_bandwidth(Y, X, threshold)
 #' }
 #'
 #' @export
@@ -249,7 +249,7 @@ IK_bandwidth <- function(Y, X, threshold, kernel = c("triangular", "uniform")) {
   }
 
   list(
-    weights = weights,
-    bandwidth = h.opt
+    bandwidth = h.opt,
+    weights = weights
   )
 }

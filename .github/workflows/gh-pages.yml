@@ -32,7 +32,7 @@ jobs:
           ./run.sh bootstrap
           ./run.sh install_all
 
-          # Install packave
+          # Install package
           R CMD INSTALL .
 
           # Setup pkgdown
