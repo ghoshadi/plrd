@@ -69,7 +69,7 @@ print.plrd = function(x, digits = max(3L, getOption("digits") - 3L), ...) {
   cat(paste0("Lipschitz constant: ", signif(x$Lipschitz.constant, digits), "\n"))
   cat(paste0("Max bias: ", signif(x$max.bias, digits), "\n"))
   cat(paste0("Sampling SE: ", signif(x$sampling.se, digits), "\n"))
-  cat(paste0("Confidence level: ", x$alpha, "%", "\n"))
+  cat(paste0("Confidence level: ", x$alpha * 100, "%", "\n"))
   cat("\n")
   print(summary(x), digits = digits, ...)
 
