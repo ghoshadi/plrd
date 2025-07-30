@@ -53,18 +53,19 @@ get.Lipschitz.constant <- function(y, x, threshold,
 #' Print a plrd object
 #' @param x plrd object
 #' @param digits number of digits to print
-#' @param ... Additional arguments (currently ignored).
+#' @param ... Additional arguments passed to print methods.
 #' @export
-print.plrd = function(x, digits = NULL, ...) {
-  if(is.null(digits)) digits = 3
-  cat(paste0(100 * x$alpha, "% CI for tau: [", signif(x$ci.lower, digits), ", ", signif(x$ci.upper, digits),"]\n"))
-  # if (!is.null(x$tau.hat)) {
-  #   print(paste0(100 * x$alpha, "% CI for tau: ",
-  #                signif(x$tau.hat, 2), " +/- ", signif(x$tau.plusminus, 2)))
-  # } else {
-  #   print(paste0(100 * x$alpha, "% CI for tau: [point estimate] +/- ",
-  #                signif(x$tau.plusminus, 2)))
-  # }
+print.plrd = function(x, digits = max(3L, getOption("digits") - 3L), ...) {
+  cat(paste0("Partially linear regression discontinuity inference: \n"))
+  cat(paste0("Threshold: ", signif(x$threshold, digits), "\n"))
+  cat(paste0("Lipschitz constant: ", signif(x$Lipschitz.constant, digits), "\n"))
+  cat(paste0("Max bias: ", signif(x$max.bias, digits), "\n"))
+  cat(paste0("Sampling SE: ", signif(x$sampling.se, digits), "\n"))
+  cat(paste0("Confidence level: ", x$alpha, "%", "\n"))
+  cat("\n")
+  print(summary(x), digits = digits, ...)
+
+  invisible(x)
 }
 
 #' plrd summary
