@@ -51,7 +51,7 @@ get.Lipschitz.constant <- function(y, x, threshold,
 }
 
 #' Extract plrd coefficient
-#' @param x plrd object
+#' @param object plrd object
 #' @param ... Additional arguments (currently ignored).
 #' @export
 coef.plrd = function(object, ...) {

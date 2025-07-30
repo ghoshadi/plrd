@@ -7,9 +7,9 @@
 \method{coef}{plrd}(object, ...)
 }
 \arguments{
-\item{...}{Additional arguments (currently ignored).}
+\item{object}{plrd object}
 
-\item{x}{plrd object}
+\item{...}{Additional arguments (currently ignored).}
 }
 \description{
 Extract plrd coefficient
