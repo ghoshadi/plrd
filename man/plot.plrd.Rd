@@ -4,10 +4,12 @@
 \alias{plot.plrd}
 \title{Plot a plrd object}
 \usage{
-\method{plot}{plrd}(x, percentage.cumulative.weights = 0.99, ...)
+\method{plot}{plrd}(x, type = "default", percentage.cumulative.weights = 0.99, ...)
 }
 \arguments{
 \item{x}{plrd object}
+
+\item{type}{Type of plot the user wants to see. We offer three options: "default", "weights", and "combined". The "default" option shows the scatterplot of the original data with black curves that are representative regression functions in our data-driven function class. The dashed line shows the threshold, and the dotted lines indicate the window containing a percentage (99\% by default) of the cumulative absolute plrd weights. The "weights" option plots plrd weights (note, two sets of plrd weights because we use cross-fitting). The "combined" option is a fancy plot combining both the scatterplot and the plot of plrd weights.}
 
 \item{percentage.cumulative.weights}{The percentage of the cumulative absolute weights user wants to keep (for visualization purposes only)}
 
