@@ -52,7 +52,7 @@ plrd <- function (Y, X, threshold, W = NULL,
                   bin.width = NULL,
                   num.bucket = 400,
                   use.spline = TRUE,
-                  spline.df = 40,
+                  spline.df = NULL,
                   seed = 42,
                   use.homoskedastic.variance = FALSE,
                   verbose = FALSE)
@@ -82,11 +82,13 @@ plrd <- function (Y, X, threshold, W = NULL,
   # Determining whether different curvatures should be used before and after the threshold
   Xc = X - threshold
   df = data.frame(Y = Y, Xc = Xc, W = W)
-  fit1 = stats::lm(Y ~ W * I(Xc) + I(Xc^2) + I(Xc^3),
-                   data = df, subset = abs(Xc) <= max.window)
-  fit2 = stats::lm(Y ~ W * (I(Xc) + I(Xc^2) + I(Xc^3)),
-                   data = df, subset = abs(Xc) <= max.window)
-  diff.curvatures = (as.numeric(stats::anova(fit1, fit2)[["Pr(>F)"]][2]) <= signif.curvature)
+  if(is.null(diff.curvatures)){
+      fit1 = stats::lm(Y ~ W * I(Xc) + I(Xc^2) + I(Xc^3),
+                   data = df, subset = abs(Xc) <= max.window) # W interacts with only 1 and X - c
+      fit2 = stats::lm(Y ~ W * (I(Xc) + I(Xc^2) + I(Xc^3)),
+                   data = df, subset = abs(Xc) <= max.window) # W interacts with 1, X-c, (X-c)^2, (X-c)^3
+      diff.curvatures = (as.numeric(stats::anova(fit1, fit2)[["Pr(>F)"]][2]) <= signif.curvature)
+  }
 
   scale.Y = diff(range(df$Y)); Y.scaled = df$Y/scale.Y
   X.scaled = threshold + (df$Xc)/max.window
@@ -146,6 +148,8 @@ plrd <- function (Y, X, threshold, W = NULL,
   if(verbose) print(paste("Estimated variance proxy for cross-fitting folds:",
                           round(sigma.sq.fold1*(scale.Y^2),3),
                           round(sigma.sq.fold2*(scale.Y^2),3)))
+
+  if(is.null(spline.df)) spline.df = 40
 
   out_train = plrd.optim(Y = Y.scaled[fold1.idx],
                          X = X.scaled[fold1.idx],
@@ -375,7 +379,7 @@ plrd.optim <- function (Y = NULL, X = NULL, threshold = NULL, W = NULL,
   gamma.1 = rep(0, num.bucket)
 
   if(verbose){
-    print(paste0("Running quadrprog with problem of size: ", dim(Amat)[1], " x ", dim(Amat)[2], "..."))
+    print(paste0("Running quadprog with problem of size: ", dim(Amat)[1], " x ", dim(Amat)[2], "..."))
   }
   # Solve quadratic programming problem
   soln = quadprog::solve.QP(Matrix::Diagonal(num.params, Dmat.diagonal + 1e-6),
