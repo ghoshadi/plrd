@@ -94,11 +94,13 @@ summary.plrd = function(object, ...) {
 }
 
 #' Plot a plrd object
+#' 
 #' @param x plrd object
+#' @param type Type of plot the user wants to see. We offer three options: "default", "weights", and "combined". The "default" option shows the scatterplot of the original data with black curves that are representative regression functions in our data-driven function class. The dashed line shows the threshold, and the dotted lines indicate the window containing a percentage (99% by default) of the cumulative absolute plrd weights. The "weights" option plots plrd weights (note, two sets of plrd weights because we use cross-fitting). The "combined" option is a fancy plot combining both the scatterplot and the plot of plrd weights.
 #' @param percentage.cumulative.weights The percentage of the cumulative absolute weights user wants to keep (for visualization purposes only)
 #' @param ... Additional arguments (currently ignored).
 #' @export
-plot.plrd = function(x, percentage.cumulative.weights = .99, ...) {
+plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, ...) {
   full_df = data.frame(X = (x$X-x$threshold),
                        Y = (x$Y - x$tau.hat*x$W),
                        W = x$W,
@@ -125,6 +127,42 @@ plot.plrd = function(x, percentage.cumulative.weights = .99, ...) {
       args$ylab = "Y (response)"
     }
     args$x = NA; args$y = NA
+    if(type == "default"){
+      graphics::layout(matrix(1))
+      graphics::par(mar = c(0, 4.5, 2, 2))
+      do.call(graphics::plot, c(args, xaxt = "n"))
+      graphics::points(x$X, x$Y,
+                     col = c("#CC3311","#009E73")[as.numeric(x$X>x$threshold)+1],
+                     cex = .5)
+      graphics::lines(xx, yy, col = 'black', lwd = 3)
+      graphics::abline(v = x$threshold, lwd = 1.5, lty = 2)
+      graphics::abline(v = c(-l,l)+x$threshold, lwd = 1.5, lty = 3)
+    } else if (type == "weights"){
+      graphics::layout(matrix(1))
+      graphics::par(mar = c(4.5, 4.5, 0, 2))
+      xs0 <- x$gamma.fun.0[[1]]
+      ys0 <- x$gamma.fun.0[[2]]
+      xs1 <- x$gamma.fun.1[[1]]
+      ys1 <- x$gamma.fun.1[[2]]
+      plot(
+        NA, type = "n",
+        xlim = range(xs0, xs1),
+        ylim = range(ys0, ys1),
+        xlab = args$xlab,
+        ylab = expression(hat(gamma)(X))
+        )
+      if (length (unique(c(xs0, xs1)) > 40)) {
+        graphics::points(xs0, ys0, col = "#CC3311", pch = 20, cex = 0.5)
+        graphics::points(xs1, ys1, col = "#009E73", pch = 20, cex = 0.5)
+      } else {
+        graphics::lines(xs0, ys0, col = "#CC3311", lwd = 1)
+        graphics::lines(xs1, ys1, col = "#009E73", lwd = 1)
+      }
+      graphics::abline(v = (c(-l,l)+x$threshold),
+                      lwd = 1.5, lty = 3)
+      graphics::abline(v = x$threshold, lwd = 1.5, lty = 2)
+      graphics::abline(h = 0, lwd = 1.5, lty = 2)
+    } else if (type == "combined"){
     graphics::layout(matrix(1:2, ncol = 1), heights = c(4, 3))
     graphics::par(mar = c(0, 4.5, 2, 2))
     do.call(graphics::plot, c(args, xaxt = "n"))
@@ -157,12 +195,11 @@ plot.plrd = function(x, percentage.cumulative.weights = .99, ...) {
                      lwd = 1.5, lty = 3)
     graphics::abline(v = x$threshold, lwd = 1.5, lty = 2)
     graphics::abline(h = 0, lwd = 1.5, lty = 2)
-    print(paste("The black curves in the top panel are representative regression functions in our data-driven function class. The dashed line shows the threshold, and the dotted lines indicate the window containing 95% of the cumulative absolute weights. The bottom panel shows two sets of plrd weights because we use cross-fitting."))
-  } else {
+    } else {
     stop("Corrupted object.")
-  }
+    }
 }
-
+}
 #' Compute MSE-optimal Imbens-Kalyanaraman bandwidth for a sharp RD.
 #'
 #' This convenience function computes weights using the Imbens-Kalyanaraman bandwidth procedure.
