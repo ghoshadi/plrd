@@ -28,5 +28,11 @@ W = as.numeric(X >= threshold)
 Y = (1 + 2*W)*(1 + X^2) + 1 / (1 + exp(X)) + rnorm(n, sd = .5)
 out = plrd(Y, X, threshold)
 print(out)
+# default plot: scatterplot of original data with black curves showing 
+# representative regression functions in our data-driven function class
 plot(out)
+# plot of plrd weights (two sets of weights because we use cross-fitting)
+plot(out, type = "weights")
+# fancy plot option that combines the previous two plots
+plot(out, type = "combined")
 ```
