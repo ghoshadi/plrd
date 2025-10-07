@@ -101,6 +101,7 @@ summary.plrd = function(object, ...) {
 #' @param ... Additional arguments (currently ignored).
 #' @export
 plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, ...) {
+  op <- graphics::par(no.readonly = TRUE)
   full_df = data.frame(X = (x$X-x$threshold),
                        Y = (x$Y - x$tau.hat*x$W),
                        W = x$W,
@@ -129,8 +130,8 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, .
     args$x = NA; args$y = NA
     if(type == "default"){
       graphics::layout(matrix(1))
-      graphics::par(mar = c(0, 4.5, 2, 2))
-      do.call(graphics::plot, c(args, xaxt = "n"))
+      graphics::par(mar = c(4.5, 4.5, 2, 2))
+      do.call(graphics::plot, args)
       graphics::points(x$X, x$Y,
                        col = c("#CC3311","#009E73")[as.numeric(x$X>x$threshold)+1],
                        cex = .5)
@@ -139,7 +140,7 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, .
       graphics::abline(v = c(-l,l)+x$threshold, lwd = 1.5, lty = 3)
     } else if (type == "weights"){
       graphics::layout(matrix(1))
-      graphics::par(mar = c(4.5, 4.5, 0, 2))
+      graphics::par(mar = c(4.5, 4.5, 2, 2))
       xs0 <- x$gamma.fun.0[[1]]
       ys0 <- x$gamma.fun.0[[2]]
       xs1 <- x$gamma.fun.1[[1]]
@@ -149,7 +150,7 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, .
         xlim = range(xs0, xs1),
         ylim = range(ys0, ys1),
         xlab = args$xlab,
-        ylab = expression(hat(gamma)(X))
+        ylab = expression("plrd weights " ~ hat(gamma)(X))
       )
       if (length (unique(c(xs0, xs1)) > 40)) {
         graphics::points(xs0, ys0, col = "#CC3311", pch = 20, cex = 0.5)
@@ -163,9 +164,10 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, .
       graphics::abline(v = x$threshold, lwd = 1.5, lty = 2)
       graphics::abline(h = 0, lwd = 1.5, lty = 2)
     } else if (type == "combined"){
-      graphics::layout(matrix(1:2, ncol = 1), heights = c(4, 3))
+      graphics::layout(matrix(1:2, ncol = 1), heights = c(4, 3.5))
       graphics::par(mar = c(0, 4.5, 2, 2))
-      do.call(graphics::plot, c(args, xaxt = "n"))
+      do.call(graphics::plot, c(args, xaxt = "n", yaxt = "n"))
+      graphics::axis(2, las = 1)
       graphics::points(x$X, x$Y,
                        col = c("#CC3311","#009E73")[as.numeric(x$X>x$threshold)+1],
                        cex = .5)
@@ -182,8 +184,11 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, .
         xlim = range(xs0, xs1),
         ylim = range(ys0, ys1),
         xlab = args$xlab,
-        ylab = expression(hat(gamma)(X))
+        ylab = expression(hat(gamma)(X)),
+        yaxt="n"
       )
+      graphics::axis(2, at = pretty(range(ys0, ys1), n = 4),
+                     las = 1, cex.axis = 0.9)
       if (length (unique(c(xs0, xs1)) > 40)) {
         graphics::points(xs0, ys0, col = "#CC3311", pch = 20, cex = 0.5)
         graphics::points(xs1, ys1, col = "#009E73", pch = 20, cex = 0.5)
@@ -196,8 +201,12 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, .
       graphics::abline(v = x$threshold, lwd = 1.5, lty = 2)
       graphics::abline(h = 0, lwd = 1.5, lty = 2)
     } else {
-      stop("Corrupted object.")
+      stop("Please select plot type among 'default', 'weights', or 'combined'.")
     }
+    on.exit(graphics::par(op), add = TRUE) # restore par
+    on.exit(graphics::layout(1), add = TRUE) # reset layout to 1 panel
+  } else {
+    stop("Corrupted object.")
   }
 }
 #' Compute MSE-optimal Imbens-Kalyanaraman bandwidth for a sharp RD.
