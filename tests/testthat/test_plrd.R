@@ -1,7 +1,7 @@
 
 test_that("plrd basic example runs", {
   library(plrd)
-  # Simple example of regression discontinuity design 
+  # Simple example of regression discontinuity design
   set.seed(42)
   n = 1000; threshold = 0
   X = runif(n, -1, 1)
@@ -68,7 +68,7 @@ test_that("Treatment effect flips if discrete running variable is reversed", {
   X = round(X,2)
   W = as.numeric(X >= threshold)
   Y = (1 + 2*W)*(1 + X^2) + 1 / (1 + exp(X)) + rnorm(n, sd = .5)
-  
+
   out = plrd(Y, X, threshold)
   # Take care of units exactly at threshold, should be not treated when reversed
   X.rev = X
@@ -76,4 +76,24 @@ test_that("Treatment effect flips if discrete running variable is reversed", {
   X.rev = -X.rev
   out.flipped = plrd(Y, X.rev, threshold)
   expect_equal(out$tau.hat, -1 * out.flipped$tau.hat, tolerance = 1e-6)
+})
+
+
+test_that("max.window works as expected", {
+  n.init = 10000; threshold = 0
+  X = runif(n.init, -1, 1)
+  W = as.numeric(X >= threshold)
+  Y = (1 + 0.1*W)*(1 + X^2) + 1 / (1 + exp(X)) + rnorm(n.init, sd = .5)
+  out <- plrd(Y, X, threshold)
+
+  n = 10*n.init
+  X.new = c(runif((n-n.init)/2, -10, -1), runif((n-n.init)/2, 1, 10))
+  W.new = as.numeric(X.new >= threshold)
+  Y.new = (1 + 0.1*W.new)*(1 + X.new^2) + 1 / (1 + exp(X.new)) + rnorm(n-n.init, sd = .5)
+  X = c(X, X.new); W = c(W, W.new); Y = c(Y, Y.new)
+  out.new <- plrd(Y, X, threshold, max.window = 1)
+
+  expect_equal(out$tau.hat, out.new$tau.hat)
+  expect_equal(out$max.bias, out.new$max.bias)
+  expect_equal(out$sampling.se, out.new$sampling.se)
 })

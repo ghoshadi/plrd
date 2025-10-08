@@ -182,7 +182,7 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, .
       ys1 <- x$gamma.fun.1[[2]]
       plot(
         NA, type = "n",
-        xlim = range(xs0, xs1),
+        xlim = range(xx),
         ylim = range(ys0, ys1),
         xlab = args$xlab,
         ylab = expression(hat(gamma)(X)),
