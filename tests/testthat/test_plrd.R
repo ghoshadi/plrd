@@ -74,7 +74,7 @@ test_that("Treatment effect flips if discrete running variable is reversed", {
   X.rev = X
   X.rev[X.rev == threshold] = .Machine$double.eps
   X.rev = -X.rev
-  out.flipped = plrd(Y, X.rev, threshold)
+  out.flipped = plrd(Y, X.rev, -threshold)
   expect_equal(out$tau.hat, -1 * out.flipped$tau.hat, tolerance = 1e-6)
 })
 
@@ -96,4 +96,21 @@ test_that("max.window works as expected", {
   expect_equal(out$tau.hat, out.new$tau.hat)
   expect_equal(out$max.bias, out.new$max.bias)
   expect_equal(out$sampling.se, out.new$sampling.se)
+})
+
+
+test_that("scaling invariance with discrete running variable and nonzero threshold", {
+  n = 1000; threshold = 1.42
+  X = runif(n, -3, 3)
+  # Discretize running variable
+  X = round(X,2)
+  W = as.numeric(X >= threshold)
+  Y = (1 + 2*W)*(1 + X^2) + 1 / (1 + exp(X)) + rnorm(n, sd = .5)
+  out = plrd(Y, X, threshold)
+  # Take care of units exactly at threshold, should be not treated when reversed
+  X.rev = X
+  X.rev[X.rev == threshold] = threshold + 1e-6
+  X.rev = -X.rev
+  out.flipped = plrd(Y, X.rev, -threshold)
+  expect_equal(out$tau.hat, -1 * out.flipped$tau.hat, tolerance = 1e-6)
 })

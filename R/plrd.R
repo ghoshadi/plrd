@@ -69,6 +69,11 @@ plrd <- function (Y, X, threshold, W = NULL,
     stop("Error: Please remove any NA values present in X or Y.")
   }
 
+  if(sum(X == threshold) > 0){
+    X[X == threshold] = threshold + 1e-6
+    message("Detected observations with running variable equal to the threshold; assigning them to the treated group.")
+  }
+
   # Setting global max window (if max.window is not provided by the user):
   if(is.null(max.window)){
     max.window = max(abs(X - threshold))
