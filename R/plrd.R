@@ -73,10 +73,15 @@ plrd <- function (Y, X, threshold, W = NULL,
   if(is.null(max.window)){
     max.window = max(abs(X - threshold))
   }
+  X.orig = X; Y.orig = Y
+  eff.indices = which(abs(X - threshold) <= max.window)
+  X = X[eff.indices]; Y = Y[eff.indices]
 
   # Computing W for sharp RDD (unless user is providing the treatment indicators):
   if(is.null(W)){
     W = as.integer(X>=threshold)
+  } else {
+    W.orig = W; W = W[eff.indices]
   }
 
   # Determining whether different curvatures should be used before and after the threshold
@@ -209,6 +214,9 @@ plrd <- function (Y, X, threshold, W = NULL,
   ci.lower = tau.hat - tau.plusminus
   ci.upper = tau.hat + tau.plusminus
 
+  gamma.out = rep(0, length(Y.orig))
+  gamma.out[eff.indices] = gamma
+
   # Creating the list to return
   ret = list(tau.hat = tau.hat,
              max.bias = max.bias,
@@ -218,15 +226,15 @@ plrd <- function (Y, X, threshold, W = NULL,
              pval = pval,
              alpha = alpha,
              tau.plusminus = tau.plusminus,
-             gamma = gamma,
+             gamma = gamma.out,
              gamma.fun.0 = gamma.fun.0,
              gamma.fun.1 = gamma.fun.1,
              Lipschitz.constant = Lipschitz.constant,
              max.window = max.window,
              threshold = threshold,
-             Y = Y,
-             X = X,
-             W = W,
+             Y = Y.orig,
+             X = X.orig,
+             W = as.integer(X.orig>=threshold),
              diff.curvatures = diff.curvatures
   )
   class(ret) = "plrd"
