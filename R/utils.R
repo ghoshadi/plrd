@@ -64,7 +64,7 @@ coef.plrd = function(object, ...) {
 #' @param percentage.cumulative.weights The percentage of the cumulative absolute weights to determine effective sample size
 #' @param ... Additional arguments passed to print methods.
 #' @export
-print.plrd = function(x, digits = max(3L, getOption("digits") - 3L), ...) {
+print.plrd = function(x, digits = max(3L, getOption("digits") - 3L), percentage.cumulative.weights = 0.99, ...) {
   cat(paste0("Partially linear regression discontinuity inference: \n"))
   cat(paste0("Threshold: ", signif(x$threshold, digits), "\n"))
   cat(paste0("Lipschitz constant: ", signif(x$Lipschitz.constant, digits), "\n"))
@@ -74,7 +74,6 @@ print.plrd = function(x, digits = max(3L, getOption("digits") - 3L), ...) {
   cat(paste0("Confidence level: ", x$alpha * 100, "%", "\n"))
   cat("\n")
   print(summary(x), digits = digits, ...)
-  cat("\n")
   invisible(x)
 }
 

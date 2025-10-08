@@ -4,16 +4,21 @@
 \alias{print.plrd}
 \title{Print a plrd object}
 \usage{
-\method{print}{plrd}(x, digits = max(3L, getOption("digits") - 3L), ...)
+\method{print}{plrd}(
+  x,
+  digits = max(3L, getOption("digits") - 3L),
+  percentage.cumulative.weights = 0.99,
+  ...
+)
 }
 \arguments{
 \item{x}{plrd object}
 
 \item{digits}{number of digits to print}
 
-\item{...}{Additional arguments passed to print methods.}
-
 \item{percentage.cumulative.weights}{The percentage of the cumulative absolute weights to determine effective sample size}
+
+\item{...}{Additional arguments passed to print methods.}
 }
 \description{
 Print a plrd object
