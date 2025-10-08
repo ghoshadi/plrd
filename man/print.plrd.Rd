@@ -12,6 +12,8 @@
 \item{digits}{number of digits to print}
 
 \item{...}{Additional arguments passed to print methods.}
+
+\item{percentage.cumulative.weights}{The percentage of the cumulative absolute weights to determine effective sample size}
 }
 \description{
 Print a plrd object
