@@ -33,9 +33,10 @@ ests.from.ci <- function(ci){
   }
 }
 
-num_reps= 100
+num_reps= 20
 data.names = c("Lee", "senate", "LudMill",  "Meyersson",
                "Mats_read", "Mats_math", "JL_read", "JL_math", "Oreopoulos")
+
 results_list = list()
 for(d in seq_along(data.names)){
   print(gt <- read.csv("ground_truths.csv")[d, ])
