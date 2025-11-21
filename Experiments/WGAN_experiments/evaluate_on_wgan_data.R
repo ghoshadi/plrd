@@ -5,6 +5,9 @@ if (!requireNamespace("splines", quietly = TRUE)) install.packages("splines")
 if (!requireNamespace("parallel", quietly = TRUE)) install.packages("parallel")
 if (!requireNamespace("R.matlab", quietly = TRUE)) install.packages("R.matlab")
 if (!requireNamespace("pbmcapply", quietly = TRUE)) install.packages("pbmcapply")
+if (!requireNamespace("arrow", quietly = TRUE)) install.packages("arrow")
+if (!requireNamespace("plrd", quietly = TRUE)) remotes::install_github("ghoshadi/plrd")
+
 library(RDHonest) # version 1.0.0
 library(rdrobust) # version 2.2
 library(glmnet) # version 4.1.8
@@ -30,7 +33,7 @@ ests.from.ci <- function(ci){
   }
 }
 
-num_reps= 10
+num_reps= 100
 data.names = c("Lee", "senate", "LudMill",  "Meyersson",
                "Mats_read", "Mats_math", "JL_read", "JL_math", "Oreopoulos")
 results_list = list()
