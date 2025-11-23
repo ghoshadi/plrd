@@ -67,7 +67,7 @@ for(d in seq_along(data.names)){
                         "RDHonest_coverage", "plrd_coverage",
                         "Conventional_width", "Bias.Corrected_width", "rdrobust_width",
                         "RDHonest_width", "plrd_width")
-  write.csv(results, paste0("./evaluations/expt_wgan_",dname,".csv"), row.names = FALSE)
+  write.csv(results, paste0("./evaluations/expt_wgan_",dname,"_temp.csv"), row.names = FALSE)
 }
 
 wgan_table = c()
