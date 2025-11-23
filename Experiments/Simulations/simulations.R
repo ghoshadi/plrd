@@ -1,3 +1,4 @@
+rm(list=ls())
 if (!requireNamespace("RDHonest", quietly = TRUE)) install.packages("RDHonest")
 if (!requireNamespace("rdrobust", quietly = TRUE)) install.packages("rdrobust")
 if (!requireNamespace("glmnet", quietly = TRUE)) install.packages("glmnet")
@@ -23,6 +24,19 @@ mred = "#CC3311"; mgreen = "#009E73"
 # n = 500
 # num_replications <- 1e4
 
+# helper function to compute estimates and standard errors from rdrobust summary
+ests.from.ci <- function(ci){
+  if(!is.null(dim(ci))){
+    ci.pm <- t(apply(ci, 1, function(x) c(mean(x), diff(x)/2, x)))
+    colnames(ci.pm) = c("tau hat", "half width", "CI lower", "CI upper")
+    return(ci.pm)
+  } else{
+    ci.pm <- c(mean(ci), diff(ci)/2, ci)
+    names(ci.pm) = c("tau hat", "half width", "CI lower", "CI upper")
+    return(ci.pm)
+  }
+}
+
 #===========================================
 #           Create your own
 #===========================================
@@ -37,7 +51,7 @@ single_experiment <- function(i) {
   set.seed(i)
   x = runif(n, -1, 1); y = sapply(x,  mu) + rnorm(n, sd = 0.5)
 
-  plrd.out <- plrd(y, x, cutoff = 0) # PLRD estimates and CI's
+  plrd.out <- plrd(y, x, 0) # PLRD estimates and CI's
   rdrob = ests.from.ci(rdrobust(y, x, c = 0, vce = 'hc1')$ci) # rdrobust estimates and CI's
   rdh = RDHonest(y ~ x, cutoff = 0)$coefficients # RDHonest estimates and CI's
 
@@ -60,7 +74,7 @@ single_experiment <- function(i) {
 # xx = seq(min(x), max(x), length = n)
 # yy = sapply(xx, mu)
 # points(xx, yy, type = "l", lwd = 2.5)
-# plot(our <- plrd(y, x, cutoff = 0))
+# plot(our <- plrd(y, x, 0))
 
 # results.list <- pbmclapply(1:num_replications, single_experiment, mc.cores = num_cores)
 # results <- do.call(rbind, results.list)
@@ -83,7 +97,7 @@ single_experiment_pure_noise <- function(i, n) {
   set.seed(i)
   x = runif(n, -1, 1); y = rnorm(n) # uniform(-1,1) running variable & pure noise response
 
-  plrd.out <- plrd(y, x, cutoff = 0) # PLRD estimates and CI's
+  plrd.out <- plrd(y, x, 0) # PLRD estimates and CI's
   rdrob = ests.from.ci(rdrobust(y, x, c = 0)$ci) # rdrobust estimates and CI's
   rdh = RDHonest(y ~ x, cutoff = 0)$coefficients # RDHonest estimates and CI's
 
@@ -129,7 +143,7 @@ single_experiment_CCT1 <- function(i, n = 500) {
   set.seed(i)
   x = 2*rbeta(n, 2, 4) - 1; y = sapply(x,  mu_1) + rnorm(n, sd = sigma.eps)
 
-  plrd.out <- plrd(y, x, cutoff = 0) # PLRD estimates and CI's
+  plrd.out <- plrd(y, x, 0) # PLRD estimates and CI's
   rdrob = ests.from.ci(rdrobust(y, x, c = 0, vce = 'hc1')$ci) # rdrobust estimates and CI's
   rdh = RDHonest(y ~ x, cutoff = 0)$coefficients # RDHonest estimates and CI's
 
@@ -144,17 +158,17 @@ single_experiment_CCT1 <- function(i, n = 500) {
   return(c(c1, c2, c3, w1, w2, w3))
 }
 
-results <- pbmclapply(1:num_replications, function(i) single_experiment_CCT1(i,n), mc.cores = num_cores)
-results.CCT1 <- do.call(rbind, results)
-
-print(matrix(colMeans(results.CCT1), ncol = 2,
-             dimnames = list(c("rdrobust conv", "rdrobust biascorr", "rdrobust robust",
-                               "rdhonest", "plrd"),
-                             c("coverage", "avg width")
-             )
-), digits = 3
-)
-
+# results <- pbmclapply(1:num_replications, function(i) single_experiment_CCT1(i,n), mc.cores = num_cores)
+# results.CCT1 <- do.call(rbind, results)
+#
+# print(matrix(colMeans(results.CCT1), ncol = 2,
+#              dimnames = list(c("rdrobust conv", "rdrobust biascorr", "rdrobust robust",
+#                                "rdhonest", "plrd"),
+#                              c("coverage", "avg width")
+#              )
+# ), digits = 3
+# )
+#
 # write.csv(results.CCT1, "expt_CCT1.csv", row.names = FALSE)
 
 #===========================================
@@ -172,22 +186,19 @@ single_experiment_CCT2 <- function(i, n = 500) {
   set.seed(i)
   x = 2*rbeta(n, 2, 4) - 1; y = sapply(x,  mu_2) + rnorm(n, sd = sigma.eps)
 
-  plrd.out <- plrd(y, x, cutoff = 0) # PLRD estimates and CI's
+  plrd.out <- plrd(y, x, 0) # PLRD estimates and CI's
   rdrob = ests.from.ci(rdrobust(y, x, c = 0, vce = 'hc1')$ci) # rdrobust estimates and CI's
   rdh = RDHonest(y ~ x, cutoff = 0)$coefficients # RDHonest estimates and CI's
-  plrd.out2 <- plrd(y, x, cutoff = 0, diff.curvatures = TRUE) # PLRD with curvature term
 
   w1 = 2*rdrob[,2] # widths of rdrobust CI's (conventional, bias corrected, robust)
   w2 = rdh$conf.high-rdh$conf.low # width of RDHonest CI
   w3 <- 2*plrd.out$tau.plusminus # width of PLRD CI
-  w4 <- 2*plrd.out2$tau.plusminus # width of PLRD w/ diff curv CI
 
   c1 = apply(rdrob, 1, function(x) as.numeric(abs(x[1]-truth) < x[2])) # coverages of rdrobust CI's (conventional, bias corrected, robust)
   c2 = as.numeric((rdh$conf.low<truth)*(rdh$conf.high>truth)) # coverage of RDHonest CI
   c3 <- as.numeric(abs(plrd.out$tau.hat - truth) <= w3/2) # coverage of PLRD CI
-  c4 <- as.numeric(abs(plrd.out2$tau.hat - truth) <= w4/2) # coverage of PLRD w/ diff curv CI
 
-  return(c(c1, c2, c3, c4, w1, w2, w3, w4))
+  return(c(c1, c2, c3, w1, w2, w3))
 }
 
 # results <- pbmclapply(1:num_replications, function(i) single_experiment_CCT2(i,n), mc.cores = num_cores)
@@ -195,12 +206,12 @@ single_experiment_CCT2 <- function(i, n = 500) {
 #
 # print(matrix(colMeans(results.CCT2), ncol = 2,
 #              dimnames = list(c("rdrobust conv", "rdrobust biascorr", "rdrobust robust",
-#                                "rdhonest", "plrd", "plrd w/ diff curv"),
+#                                "rdhonest", "plrd"),
 #                              c("coverage", "avg width")
 #              )
 # ), digits = 3
 # )
-
+#
 # write.csv(results.CCT2, "expt_CCT2.csv", row.names = FALSE)
 
 
@@ -220,7 +231,7 @@ single_experiment_CCT3 <- function(i, n = 500) {
   set.seed(i)
   x = 2*rbeta(n, 2, 4) - 1; y = sapply(x,  mu_3) + rnorm(n, sd = sigma.eps)
 
-  plrd.out <- plrd(y, x, cutoff = 0) # PLRD estimates and CI's
+  plrd.out <- plrd(y, x, 0) # PLRD estimates and CI's
   rdrob = ests.from.ci(rdrobust(y, x, c = 0, vce = 'hc1')$ci) # rdrobust estimates and CI's
   rdh = RDHonest(y ~ x, cutoff = 0)$coefficients # RDHonest estimates and CI's
 
@@ -260,7 +271,7 @@ single_experiment_IK <- function(i, n = 500) {
   set.seed(i)
   x = 2*rbeta(n, 2, 4) - 1; y = sapply(x,  mu_4) + rnorm(n, sd = sigma.eps)
 
-  plrd.out <- plrd(y, x, cutoff = 0) # PLRD estimates and CI's
+  plrd.out <- plrd(y, x, 0) # PLRD estimates and CI's
   rdrob = ests.from.ci(rdrobust(y, x, c = 0, vce = 'hc1')$ci) # rdrobust estimates and CI's
   rdh = RDHonest(y ~ x, cutoff = 0)$coefficients # RDHonest estimates and CI's
 
@@ -289,46 +300,46 @@ single_experiment_IK <- function(i, n = 500) {
 # write.csv(results.IK, "expt_IK.csv", row.names = FALSE)
 
 #------------------------------------------------------------------------------------------------
-#
-# print(matrix(colMeans(read.csv("expt_pure_noise.csv")), ncol = 2,
-#              dimnames = list(c("rdrobust conv", "rdrobust biascorr", "rdrobust robust",
-#                                "rdhonest", "plrd"),
-#                              c("coverage", "avg width")
-#              )
-# ), digits = 3
-# )
-#
-# print(matrix(colMeans(read.csv("expt_CCT1.csv")), ncol = 2,
-#              dimnames = list(c("rdrobust conv", "rdrobust biascorr", "rdrobust robust",
-#                                "rdhonest", "plrd"),
-#                              c("coverage", "avg width")
-#              )
-# ), digits = 3
-# )
-#
-# print(matrix(colMeans(read.csv("expt_CCT2.csv")), ncol = 2,
-#              dimnames = list(c("rdrobust conv", "rdrobust biascorr", "rdrobust robust",
-#                                "rdhonest", "plrd", "plrd w/ diff curv"),
-#                              c("coverage", "avg width")
-#              )
-# ), digits = 3
-# )
-#
-# print(matrix(colMeans(read.csv("expt_CCT3.csv")), ncol = 2,
-#              dimnames = list(c("rdrobust conv", "rdrobust biascorr", "rdrobust robust",
-#                                "rdhonest", "plrd"),
-#                              c("coverage", "avg width")
-#              )
-# ), digits = 3
-# )
-#
-# print(matrix(colMeans(read.csv("expt_IK.csv")), ncol = 2,
-#              dimnames = list(c("rdrobust conv", "rdrobust biascorr", "rdrobust robust",
-#                                "rdhonest", "plrd"),
-#                              c("coverage", "avg width")
-#              )
-# ), digits = 3
-# )
+
+print(matrix(colMeans(read.csv("expt_pure_noise.csv")), ncol = 2,
+             dimnames = list(c("rdrobust conv", "rdrobust biascorr", "rdrobust robust",
+                               "rdhonest", "plrd"),
+                             c("coverage", "avg width")
+             )
+), digits = 3
+)
+
+print(matrix(colMeans(read.csv("expt_CCT1.csv")), ncol = 2,
+             dimnames = list(c("rdrobust conv", "rdrobust biascorr", "rdrobust robust",
+                               "rdhonest", "plrd"),
+                             c("coverage", "avg width")
+             )
+), digits = 3
+)
+
+print(matrix(colMeans(read.csv("expt_CCT2.csv")), ncol = 2,
+             dimnames = list(c("rdrobust conv", "rdrobust biascorr", "rdrobust robust",
+                               "rdhonest", "plrd"),
+                             c("coverage", "avg width")
+             )
+), digits = 3
+)
+
+print(matrix(colMeans(read.csv("expt_CCT3.csv")), ncol = 2,
+             dimnames = list(c("rdrobust conv", "rdrobust biascorr", "rdrobust robust",
+                               "rdhonest", "plrd"),
+                             c("coverage", "avg width")
+             )
+), digits = 3
+)
+
+print(matrix(colMeans(read.csv("expt_IK.csv")), ncol = 2,
+             dimnames = list(c("rdrobust conv", "rdrobust biascorr", "rdrobust robust",
+                               "rdhonest", "plrd"),
+                             c("coverage", "avg width")
+             )
+), digits = 3
+)
 
 
 #------------------------------------------------------------------------------------------------
@@ -398,7 +409,7 @@ run_experiments <- function(num_replications = 100, n = 500,
   results.CCT2 <- do.call(rbind, results)
   print(matrix(colMeans(results.CCT2), ncol = 2,
                dimnames = list(c("rdrobust conv", "rdrobust biascorr", "rdrobust robust",
-                                 "rdhonest", "plrd", "plrd w/ diff curvature"),
+                                 "rdhonest", "plrd"),
                                c("coverage", "avg width")
                )
   ), digits = 3
