@@ -129,7 +129,7 @@ plrd <- function (Y, X, threshold, W = NULL,
                      B.fold2 = get.Lipschitz.constant(Y.scaled[fold1.idx], X.scaled[fold1.idx], threshold, diff.curvatures)
                      B.fold1 = get.Lipschitz.constant(Y.scaled[fold2.idx], X.scaled[fold2.idx], threshold, diff.curvatures)
                      if(trial==max.trial){
-                       print(paste("The estimated Lipschitz constants for curvatures differ vastly across the sample splits, even after trying a bunch of different sample splits. We are proceeding with a more conservative estimate: taking the maximum across sample splits."))
+                       message("The estimated Lipschitz constants for curvatures differ vastly across the sample splits, even after trying a bunch of different sample splits. We are proceeding with a more conservative estimate: taking the maximum across sample splits.")
                        B.conservative = max(B.fold1, B.fold2)
                        B.fold1 = B.fold2 = B.conservative
                      }
@@ -140,9 +140,9 @@ plrd <- function (Y, X, threshold, W = NULL,
                      fold1.idx <- which(folds != 1)
                    }
   )
-  if(verbose) print(paste("Estimated Lipschitz constant for curvature for cross-fitting folds:",
+  if(verbose) message("Estimated Lipschitz constant for curvature for cross-fitting folds:",
                           round(B.fold1*(max.window^3)*scale.Y,3),
-                          round(B.fold2*(max.window^3)*scale.Y,3))) # Adjusted for scaling
+                          round(B.fold2*(max.window^3)*scale.Y,3)) # Adjusted for scaling
 
   # Estimation of sigma.sq to be used for fold1.idx
   sigma.sq.fold1 = summary(stats::lm(Y.scaled[fold2.idx] ~ X.scaled[fold2.idx] * W[fold2.idx]))$sigma^2
@@ -155,9 +155,9 @@ plrd <- function (Y, X, threshold, W = NULL,
     sigma.sq.fold1 = sigma.sq.fold2 <- sigma.sq
   }
 
-  if(verbose) print(paste("Estimated variance proxy for cross-fitting folds:",
+  if(verbose) message("Estimated variance proxy for cross-fitting folds:",
                           round(sigma.sq.fold1*(scale.Y^2),3),
-                          round(sigma.sq.fold2*(scale.Y^2),3)))
+                          round(sigma.sq.fold2*(scale.Y^2),3))
 
   if(is.null(spline.df)) spline.df = 40
 
