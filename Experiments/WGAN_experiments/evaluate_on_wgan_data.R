@@ -1,3 +1,4 @@
+rm(list = ls())
 if (!requireNamespace("RDHonest", quietly = TRUE)) install.packages("RDHonest")
 if (!requireNamespace("rdrobust", quietly = TRUE)) install.packages("rdrobust")
 if (!requireNamespace("glmnet", quietly = TRUE)) install.packages("glmnet")
