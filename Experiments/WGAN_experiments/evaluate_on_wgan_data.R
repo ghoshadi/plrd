@@ -8,15 +8,17 @@ if (!requireNamespace("pbmcapply", quietly = TRUE)) install.packages("pbmcapply"
 if (!requireNamespace("arrow", quietly = TRUE)) install.packages("arrow")
 if (!requireNamespace("plrd", quietly = TRUE)) remotes::install_github("ghoshadi/plrd")
 
-library(RDHonest) # version 1.0.0
-library(rdrobust) # version 2.2
-library(glmnet) # version 4.1.8
-library(splines) # version 4.4.2
-library(parallel) # version 4.4.2
+# If having trouble loading the package arrow, try nanoparquet
+
+library(RDHonest) # version 1.0.1
+library(rdrobust) # version 3.0.0
+library(glmnet) # version 4.1.10
+library(splines) # version 4.5.1
+library(parallel) # version 4.5.1
 library(R.matlab) # version 3.7.0
-library(plrd) # our package
-library(arrow)
-library(pbmcapply)
+library(pbmcapply) # version 1.5.1
+library(arrow) # version 22.0.0
+library(plrd) # our package, version 0.0.1
 
 num_cores = parallel::detectCores()
 
