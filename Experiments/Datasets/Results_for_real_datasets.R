@@ -1,3 +1,4 @@
+rm(list = ls())
 if (!requireNamespace("RDHonest", quietly = TRUE)) install.packages("RDHonest")
 if (!requireNamespace("rdrobust", quietly = TRUE)) install.packages("rdrobust")
 if (!requireNamespace("glmnet", quietly = TRUE)) install.packages("glmnet")
@@ -17,14 +18,25 @@ library(readstata13)
 
 mred = "#CC3311"; mgreen = "#009E73"
 
+# helper function to compute estimates and standard errors from rdrobust summary
+ests.from.ci <- function(ci){
+  if(!is.null(dim(ci))){
+    ci.pm <- t(apply(ci, 1, function(x) c(mean(x), diff(x)/2, x)))
+    colnames(ci.pm) = c("tau hat", "half width", "CI lower", "CI upper")
+    return(ci.pm)
+  } else{
+    ci.pm <- c(mean(ci), diff(ci)/2, ci)
+    names(ci.pm) = c("tau hat", "half width", "CI lower", "CI upper")
+    return(ci.pm)
+  }
+}
+
 #=======================================================
 # Lee_data
 #=======================================================
 
 set.seed(123)
 Lee_data <- data.frame(readMat("davidlee.mat"))
-#Lee_data <- subset(Lee_data, abs(y1-0.5)<=0.49)
-#Lee_data <- subset(Lee_data, abs(x)<=0.99)
 y = Lee_data$y1; x = Lee_data$x; cutoff = 0
 par(mfrow=c(1,1), mar=c(5.1, 4.1, 4.1, 2.1))
 plot(x, y, pch = 16, cex = 0.5,
