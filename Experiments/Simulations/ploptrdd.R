@@ -53,7 +53,6 @@ ploptrdd <- function (Y = NULL, X, cutoff = 0,
     if(is.null(dim(X))) n = length(X)
     if(!is.null(dim(X))) n = dim(X)[1]
     max.window = max(abs(X-cutoff))
-    #max.window = min(max(X - cutoff), max(-X + cutoff))
   }
   datsub.indices <- which(abs(X - cutoff) <= max.window)
   X = X[datsub.indices]; Y = Y[datsub.indices]; n = length(Y)
@@ -357,4 +356,37 @@ ploptrdd.optim <- function (Y = NULL, X, cutoff = 0,
   )
 #  class(ret) = "plrd"
   return(ret)
+}
+#'
+#' Bounds on higher order derivatives of the conditional response function
+#'
+#' @param y The outcomes.
+#' @param x The running variable.
+#' @param cutoff cutoff for treatment.
+#' @param d Order of the derivative (default is d = 3).
+#' @return Bound on d-th derivative of the conditional response function.
+#' @export
+#'
+get.max.deriv <- function(y, x, cutoff, d = 2){
+  fit_left <- stats::lm(y[x < cutoff] ~ poly((x-cutoff)[x < cutoff], d, raw = TRUE))
+  fit_right <- stats::lm(y[x > cutoff] ~ poly((x-cutoff)[x > cutoff], d, raw = TRUE))
+  eps = stats::sd(y)/100
+  B_left <- abs(factorial(d) * stats::coef(fit_left)[(d+1)])
+  B_right <- abs(factorial(d) * stats::coef(fit_right)[(d+1)])
+  return(B_hat <- max(c(B_left, B_right, eps)))
+}
+#' Bias-adjusted Gaussian confidence intervals.
+#'
+#' @param max.bias Worst-case bias of estimate.
+#' @param sampling.se Sampling error of estimate.
+#' @param alpha Coverage probability of confidence interval.
+#'
+#' @return Half-width of confidence interval.
+#' @export
+get.plusminus = function(max.bias, sampling.se, alpha = 0.95) {
+  rel.bias = max.bias/sampling.se
+  zz = stats::uniroot(function(z) stats::pnorm(rel.bias - z) +
+                        stats::pnorm(-rel.bias - z) + alpha - 1,
+                      c(0, rel.bias - stats::qnorm((1 - alpha)/3)))$root
+  zz * sampling.se
 }
