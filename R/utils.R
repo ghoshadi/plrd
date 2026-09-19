@@ -94,6 +94,39 @@ summary.plrd = function(object, ...) {
   out
 }
 
+
+#' Find the effective weight window
+#'
+#' Computes per-side distances from the threshold spanning the cumulative
+#' absolute plrd weight mass up to (but not exceeding) the target share,
+#' treating the two sides independently (asymmetric window).
+#'
+#' @param x plrd object
+#' @param percentage.cumulative.weights Share of cumulative absolute weights to retain on each side.
+#' @return A list with per-side distances (\code{l_below}, \code{l_above}) from the threshold.
+#' @keywords internal
+find_weight_window <- function(x, percentage.cumulative.weights = 0.99) {
+  xs0 <- x$gamma.fun.0[[1]]; gs0 <- x$gamma.fun.0[[2]]  # below
+  xs1 <- x$gamma.fun.1[[1]]; gs1 <- x$gamma.fun.1[[2]]  # above
+
+  # Find farthest point still below target percentage (else nearest)
+  weight_quantile_distance <- function(xs, gs) {
+    ord <- order(abs(xs - x$threshold))
+    cum <- cumsum(abs(gs[ord])) / sum(abs(gs))
+    idx <- which(cum < percentage.cumulative.weights)
+    i   <- if (length(idx)) idx[length(idx)] else 1L
+    abs(xs[ord][i] - x$threshold)
+  }
+
+  l_below <- weight_quantile_distance(xs0, gs0)
+  l_above <- weight_quantile_distance(xs1, gs1)
+
+  list(
+    l_below = l_below,
+    l_above = l_above
+  )
+}
+
 #' Plot a plrd object
 #'
 #' @param x plrd object
@@ -107,8 +140,7 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, .
   ge.c <- as.numeric(x$X >= c)
   full_df = data.frame(Xc = (x$X-x$threshold),
                        Y0 = (x$Y - x$tau.hat*ge.c),
-                       ge.c  = ge.c,
-                       gamma = x$gamma)
+                       ge.c  = ge.c)
 
   # Fit splines with separate curvature above and below c, depending on fit, with df = 2 (default for now)
   if (isTRUE(x$diff.curvatures)) {
@@ -117,20 +149,16 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, .
     fit = stats::lm(Y0 ~ splines::ns(Xc, df = 2) + I(ge.c*Xc), data = full_df)
   }
 
-  # Plot model only in a window [threshold - l, threshold + l] containing most of the weights
-  l = with(full_df, uniroot(function(b) sum(abs(gamma)[abs(Xc) <= b]) / sum(abs(gamma)) - percentage.cumulative.weights,
-                            lower = 0, upper = max(abs(Xc)))$root)
-  x_lo = c - l
-  x_hi = c + l
+  # Plot model only in a window [threshold - l below, threshold + l above] containing the specified cumulative absolute weights (effective support)
+  windows.effective.support  = find_weight_window(x, percentage.cumulative.weights)
+  x_lo = c - windows.effective.support$l_below
+  x_hi = c + windows.effective.support$l_above
 
-  # Generate grid on running variable for x coordinates with corresponding y coordinates
+  # Generate grid on running variable for x coordinates with corresponding y coordinates within effective support
   xx_left  = utils::head(seq(x_lo, c, length.out = 201), -1)
   xx_right = seq(c, x_hi, length.out = 200)
   yy_left  = as.numeric(stats::predict(fit, newdata = data.frame(Xc = xx_left  - c, ge.c = 0)))
   yy_right = as.numeric(stats::predict(fit, newdata = data.frame(Xc = xx_right - c, ge.c = 1))) + x$tau.hat
-
-  xx = c(xx_left, xx_right)
-  yy = c(yy_left, yy_right)
 
   args = list(...)
   if (is.null(dim(x$gamma))) {
