@@ -103,17 +103,35 @@ summary.plrd = function(object, ...) {
 #' @export
 plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, ...) {
   op <- graphics::par(no.readonly = TRUE)
-  full_df = data.frame(X = (x$X-x$threshold),
-                       Y = (x$Y - x$tau.hat*x$W),
-                       W = x$W,
+  c <- x$threshold
+  ge.c <- as.numeric(x$X >= c)
+  full_df = data.frame(Xc = (x$X-x$threshold),
+                       Y0 = (x$Y - x$tau.hat*ge.c),
+                       ge.c  = ge.c,
                        gamma = x$gamma)
-  # Finding a window [threshold - l, threshold + l] containing most of the weights
-  l = with(full_df, uniroot(function(b) sum(abs(gamma)[abs(X) <= b]) / sum(abs(gamma)) - percentage.cumulative.weights,
-                            lower = 0, upper = max(abs(X)))$root)
-  df = subset(full_df, abs(full_df$X) <= l)
-  xx = seq(from = -l, to = l, length = 200) + x$threshold
-  coefs = stats::coef(stats::lm(Y ~ X + I(W*X) + I(X^2),  data = df))
-  yy = x$tau.hat*as.numeric(xx>x$threshold) + cbind(1, xx-x$threshold, (xx-x$threshold)*as.numeric(xx>x$threshold), (xx-x$threshold)^2) %*% coefs
+
+  # Fit splines with separate curvature above and below c, depending on fit, with df = 2 (default for now)
+  if (isTRUE(x$diff.curvatures)) {
+    fit = stats::lm(Y0 ~ splines::ns(Xc, df = 2) + I(ge.c*Xc) + I(ge.c*Xc^2), data = full_df)
+  } else {
+    fit = stats::lm(Y0 ~ splines::ns(Xc, df = 2) + I(ge.c*Xc), data = full_df)
+  }
+
+  # Plot model only in a window [threshold - l, threshold + l] containing most of the weights
+  l = with(full_df, uniroot(function(b) sum(abs(gamma)[abs(Xc) <= b]) / sum(abs(gamma)) - percentage.cumulative.weights,
+                            lower = 0, upper = max(abs(Xc)))$root)
+  x_lo = c - l
+  x_hi = c + l
+
+  # Generate grid on running variable for x coordinates with corresponding y coordinates
+  xx_left  = utils::head(seq(x_lo, c, length.out = 201), -1)
+  xx_right = seq(c, x_hi, length.out = 200)
+  yy_left  = as.numeric(stats::predict(fit, newdata = data.frame(Xc = xx_left  - c, ge.c = 0)))
+  yy_right = as.numeric(stats::predict(fit, newdata = data.frame(Xc = xx_right - c, ge.c = 1))) + x$tau.hat
+
+  xx = c(xx_left, xx_right)
+  yy = c(yy_left, yy_right)
+
   args = list(...)
   if (is.null(dim(x$gamma))) {
     if (!"xlim" %in% names(args)) {
@@ -134,11 +152,12 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, .
       graphics::par(mar = c(4.5, 4.5, 2, 2))
       do.call(graphics::plot, args)
       graphics::points(x$X, x$Y,
-                       col = c("#CC3311","#009E73")[as.numeric(x$X>x$threshold)+1],
+                       col = c("#CC3311","#009E73")[as.numeric(x$X>=c)+1],
                        cex = .5)
-      graphics::lines(xx, yy, col = 'black', lwd = 3)
-      graphics::abline(v = x$threshold, lwd = 1.5, lty = 2)
-      graphics::abline(v = c(-l,l)+x$threshold, lwd = 1.5, lty = 3)
+      graphics::lines(xx_left,  yy_left,  col = 'black', lwd = 3)
+      graphics::lines(xx_right, yy_right, col = 'black', lwd = 3)
+      graphics::abline(v = c, lwd = 1.5, lty = 2)
+      graphics::abline(v = c(x_lo, x_hi), lwd = 1.5, lty = 3)
     } else if (type == "weights"){
       graphics::layout(matrix(1))
       graphics::par(mar = c(4.5, 4.5, 2, 2))
@@ -160,9 +179,9 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, .
         graphics::lines(xs0, ys0, col = "#CC3311", lwd = 1)
         graphics::lines(xs1, ys1, col = "#009E73", lwd = 1)
       }
-      graphics::abline(v = (c(-l,l)+x$threshold),
+      graphics::abline(v = c(x_lo, x_hi),
                        lwd = 1.5, lty = 3)
-      graphics::abline(v = x$threshold, lwd = 1.5, lty = 2)
+      graphics::abline(v = c, lwd = 1.5, lty = 2)
       graphics::abline(h = 0, lwd = 1.5, lty = 2)
     } else if (type == "combined"){
       graphics::layout(matrix(1:2, ncol = 1), heights = c(4, 3.5))
@@ -170,11 +189,12 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, .
       do.call(graphics::plot, c(args, xaxt = "n", yaxt = "n"))
       graphics::axis(2, las = 1)
       graphics::points(x$X, x$Y,
-                       col = c("#CC3311","#009E73")[as.numeric(x$X>x$threshold)+1],
+                       col = c("#CC3311","#009E73")[as.numeric(x$X>=c)+1],
                        cex = .5)
-      graphics::lines(xx, yy, col = 'black', lwd = 3)
-      graphics::abline(v = x$threshold, lwd = 1.5, lty = 2)
-      graphics::abline(v = c(-l,l)+x$threshold, lwd = 1.5, lty = 3)
+      graphics::lines(xx_left,  yy_left,  col = 'black', lwd = 3)
+      graphics::lines(xx_right, yy_right, col = 'black', lwd = 3)
+      graphics::abline(v = c, lwd = 1.5, lty = 2)
+      graphics::abline(v = c(x_lo, x_hi), lwd = 1.5, lty = 3)
       graphics::par(mar = c(4.5, 4.5, 0, 2))
       xs0 <- x$gamma.fun.0[[1]]
       ys0 <- x$gamma.fun.0[[2]]
@@ -182,7 +202,7 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, .
       ys1 <- x$gamma.fun.1[[2]]
       plot(
         NA, type = "n",
-        xlim = range(xx),
+        xlim = args$xlim,
         ylim = range(ys0, ys1),
         xlab = args$xlab,
         ylab = expression(hat(gamma)(X)),
@@ -197,9 +217,9 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, .
         graphics::lines(xs0, ys0, col = "#CC3311", lwd = 1)
         graphics::lines(xs1, ys1, col = "#009E73", lwd = 1)
       }
-      graphics::abline(v = (c(-l,l)+x$threshold),
+      graphics::abline(v = c(x_lo, x_hi),
                        lwd = 1.5, lty = 3)
-      graphics::abline(v = x$threshold, lwd = 1.5, lty = 2)
+      graphics::abline(v = c, lwd = 1.5, lty = 2)
       graphics::abline(h = 0, lwd = 1.5, lty = 2)
     } else {
       stop("Please select plot type among 'default', 'weights', or 'combined'.")
@@ -210,6 +230,7 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, .
     stop("Corrupted object.")
   }
 }
+
 #' Compute MSE-optimal Imbens-Kalyanaraman bandwidth for a sharp RD.
 #'
 #' This convenience function computes weights using the Imbens-Kalyanaraman bandwidth procedure.
