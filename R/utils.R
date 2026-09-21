@@ -137,9 +137,9 @@ find_weight_window <- function(x, percentage.cumulative.weights = 0.99) {
 #' @export
 plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, spline.df = 3, ...) {
   op <- graphics::par(no.readonly = TRUE)
-  c <- x$threshold
-  ge.c <- as.numeric(x$X >= c)
-  full_df = data.frame(Xc = (x$X-x$threshold),
+  threshold <- x$threshold
+  ge.c <- as.numeric(x$X >= threshold)
+  full_df = data.frame(Xc = (x$X - threshold),
                        Y0 = (x$Y - x$tau.hat*ge.c),
                        ge.c  = ge.c)
 
@@ -152,16 +152,16 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
 
   # Plot model only in a window [threshold - l below, threshold + l above] containing the specified cumulative absolute weights (effective support)
   windows.effective.support  = find_weight_window(x, percentage.cumulative.weights)
-  x_lo = c - windows.effective.support$l_below
-  x_hi = c + windows.effective.support$l_above
+  x_lo = threshold - windows.effective.support$l_below
+  x_hi = threshold + windows.effective.support$l_above
 
   # Generate grid on running variable for x coordinates with corresponding y coordinates within effective support
-  step = max(2, min(c - x_lo, x_hi - c) / 200)
-  xx_left  = seq(x_lo, c, by = step)
-  xx_right = seq(c, x_hi, by = step)
+  step = max(2, min(threshold - x_lo, x_hi - threshold) / 200)
+  xx_left  = seq(x_lo, threshold, by = step)
+  xx_right = seq(threshold, x_hi, by = step)
 
-  yy_left  = as.numeric(stats::predict(fit, newdata = data.frame(Xc = xx_left  - c, ge.c = 0)))
-  yy_right = as.numeric(stats::predict(fit, newdata = data.frame(Xc = xx_right - c, ge.c = 1))) + x$tau.hat
+  yy_left  = as.numeric(stats::predict(fit, newdata = data.frame(Xc = xx_left  - threshold, ge.c = 0)))
+  yy_right = as.numeric(stats::predict(fit, newdata = data.frame(Xc = xx_right - threshold, ge.c = 1))) + x$tau.hat
 
   args = list(...)
   if (is.null(dim(x$gamma))) {
@@ -183,11 +183,11 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
       graphics::par(mar = c(4.5, 4.5, 2, 2))
       do.call(graphics::plot, args)
       graphics::points(x$X, x$Y,
-                       col = c("#CC3311","#009E73")[as.numeric(x$X>=c)+1],
+                       col = c("#CC3311","#009E73")[as.numeric(x$X >= threshold)+1],
                        cex = .5)
       graphics::lines(xx_left,  yy_left,  col = 'black', lwd = 3)
       graphics::lines(xx_right, yy_right, col = 'black', lwd = 3)
-      graphics::abline(v = c, lwd = 1.5, lty = 2)
+      graphics::abline(v = threshold, lwd = 1.5, lty = 2)
       graphics::abline(v = c(x_lo, x_hi), lwd = 1.5, lty = 3)
     } else if (type == "weights"){
       graphics::layout(matrix(1))
@@ -212,7 +212,7 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
       }
       graphics::abline(v = c(x_lo, x_hi),
                        lwd = 1.5, lty = 3)
-      graphics::abline(v = c, lwd = 1.5, lty = 2)
+      graphics::abline(v = threshold, lwd = 1.5, lty = 2)
       graphics::abline(h = 0, lwd = 1.5, lty = 2)
     } else if (type == "combined"){
       graphics::layout(matrix(1:2, ncol = 1), heights = c(4, 3.5))
@@ -220,11 +220,11 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
       do.call(graphics::plot, c(args, xaxt = "n", yaxt = "n"))
       graphics::axis(2, las = 1)
       graphics::points(x$X, x$Y,
-                       col = c("#CC3311","#009E73")[as.numeric(x$X>=c)+1],
+                       col = c("#CC3311","#009E73")[as.numeric(x$X >= threshold)+1],
                        cex = .5)
       graphics::lines(xx_left,  yy_left,  col = 'black', lwd = 3)
       graphics::lines(xx_right, yy_right, col = 'black', lwd = 3)
-      graphics::abline(v = c, lwd = 1.5, lty = 2)
+      graphics::abline(v = threshold, lwd = 1.5, lty = 2)
       graphics::abline(v = c(x_lo, x_hi), lwd = 1.5, lty = 3)
       graphics::par(mar = c(4.5, 4.5, 0, 2))
       xs0 <- x$gamma.fun.0[[1]]
@@ -250,7 +250,7 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
       }
       graphics::abline(v = c(x_lo, x_hi),
                        lwd = 1.5, lty = 3)
-      graphics::abline(v = c, lwd = 1.5, lty = 2)
+      graphics::abline(v = threshold, lwd = 1.5, lty = 2)
       graphics::abline(h = 0, lwd = 1.5, lty = 2)
     } else {
       stop("Please select plot type among 'default', 'weights', or 'combined'.")
