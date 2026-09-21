@@ -106,6 +106,9 @@ summary.plrd = function(object, ...) {
 #' @return A list with per-side distances (\code{l_below}, \code{l_above}) from the threshold.
 #' @keywords internal
 find_weight_window <- function(x, percentage.cumulative.weights = 0.99) {
+  if (percentage.cumulative.weights <= 0 || percentage.cumulative.weights > 1) {
+    stop("`percentage.cumulative.weights` must be in (0, 1].")
+    }
   xs0 <- x$gamma.fun.0[[1]]; gs0 <- x$gamma.fun.0[[2]]  # below
   xs1 <- x$gamma.fun.1[[1]]; gs1 <- x$gamma.fun.1[[2]]  # above
 
