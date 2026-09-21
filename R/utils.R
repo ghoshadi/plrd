@@ -156,7 +156,7 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
   x_hi = threshold + windows.effective.support$l_above
 
   # Generate grid on running variable for x coordinates with corresponding y coordinates within effective support
-  step = max(2, min(threshold - x_lo, x_hi - threshold) / 200)
+  step = min(threshold - x_lo, x_hi - threshold) / 200
   xx_left  = seq(x_lo, threshold, by = step)
   xx_right = seq(threshold, x_hi, by = step)
 
@@ -203,7 +203,7 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
         xlab = args$xlab,
         ylab = expression("plrd weights " ~ hat(gamma)(X))
       )
-      if (length (unique(c(xs0, xs1)) > 40)) {
+      if (length (unique(c(xs0, xs1))) > 40) {
         graphics::points(xs0, ys0, col = "#CC3311", pch = 20, cex = 0.5)
         graphics::points(xs1, ys1, col = "#009E73", pch = 20, cex = 0.5)
       } else {
@@ -241,7 +241,7 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
       )
       graphics::axis(2, at = pretty(range(ys0, ys1), n = 4),
                      las = 1, cex.axis = 0.9)
-      if (length (unique(c(xs0, xs1)) > 40)) {
+      if (length (unique(c(xs0, xs1))) > 40) {
         graphics::points(xs0, ys0, col = "#CC3311", pch = 20, cex = 0.5)
         graphics::points(xs1, ys1, col = "#009E73", pch = 20, cex = 0.5)
       } else {
