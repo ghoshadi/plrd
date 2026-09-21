@@ -138,16 +138,16 @@ find_weight_window <- function(x, percentage.cumulative.weights = 0.99) {
 plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, spline.df = 3, ...) {
   op <- graphics::par(no.readonly = TRUE)
   threshold <- x$threshold
-  ge.c <- as.numeric(x$X >= threshold)
+  ge.threshold <- as.numeric(x$X >= threshold)
   full_df = data.frame(Xc = (x$X - threshold),
-                       Y0 = (x$Y - x$tau.hat*ge.c),
-                       ge.c  = ge.c)
+                       Y0 = (x$Y - x$tau.hat * ge.threshold),
+                       ge.threshold  = ge.threshold)
 
   # Fit splines with separate curvature above and below c, depending on fit, with df = 2 (default for now)
   if (isTRUE(x$diff.curvatures)) {
-    fit = stats::lm(Y0 ~ splines::ns(Xc, df = spline.df) + I(ge.c*Xc) + I(ge.c*Xc^2), data = full_df)
+    fit = stats::lm(Y0 ~ splines::ns(Xc, df = spline.df) + I(ge.threshold*Xc) + I(ge.threshold*ge.threshold^2), data = full_df)
   } else {
-    fit = stats::lm(Y0 ~ splines::ns(Xc, df = spline.df) + I(ge.c*Xc), data = full_df)
+    fit = stats::lm(Y0 ~ splines::ns(Xc, df = spline.df) + I(ge.threshold*Xc), data = full_df)
   }
 
   # Plot model only in a window [threshold - l below, threshold + l above] containing the specified cumulative absolute weights (effective support)
@@ -160,8 +160,8 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
   xx_left  = seq(x_lo, threshold, by = step)
   xx_right = seq(threshold, x_hi, by = step)
 
-  yy_left  = as.numeric(stats::predict(fit, newdata = data.frame(Xc = xx_left  - threshold, ge.c = 0)))
-  yy_right = as.numeric(stats::predict(fit, newdata = data.frame(Xc = xx_right - threshold, ge.c = 1))) + x$tau.hat
+  yy_left  = as.numeric(stats::predict(fit, newdata = data.frame(Xc = xx_left  - threshold, ge.threshold = 0)))
+  yy_right = as.numeric(stats::predict(fit, newdata = data.frame(Xc = xx_right - threshold, ge.threshold = 1))) + x$tau.hat
 
   args = list(...)
   if (is.null(dim(x$gamma))) {
