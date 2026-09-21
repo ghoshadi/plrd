@@ -156,8 +156,10 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
   x_hi = c + windows.effective.support$l_above
 
   # Generate grid on running variable for x coordinates with corresponding y coordinates within effective support
-  xx_left  = utils::head(seq(x_lo, c, length.out = 201), -1)
-  xx_right = seq(c, x_hi, length.out = 200)
+  step = max(2, min(c - x_lo, x_hi - c) / 200)
+  xx_left  = seq(x_lo, c, by = step)
+  xx_right = seq(c, x_hi, by = step)
+
   yy_left  = as.numeric(stats::predict(fit, newdata = data.frame(Xc = xx_left  - c, ge.c = 0)))
   yy_right = as.numeric(stats::predict(fit, newdata = data.frame(Xc = xx_right - c, ge.c = 1))) + x$tau.hat
 
