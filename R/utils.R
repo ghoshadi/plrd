@@ -145,7 +145,7 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
 
   # Fit splines with separate curvature above and below c, depending on fit, with df = 2 (default for now)
   if (isTRUE(x$diff.curvatures)) {
-    fit = stats::lm(Y0 ~ splines::ns(Xc, df = spline.df) + I(ge.threshold*Xc) + I(ge.threshold*ge.threshold^2), data = full_df)
+    fit = stats::lm(Y0 ~ splines::ns(Xc, df = spline.df) + I(ge.threshold*Xc) + I(ge.threshold*ge.threshold*Xc^2), data = full_df)
   } else {
     fit = stats::lm(Y0 ~ splines::ns(Xc, df = spline.df) + I(ge.threshold*Xc), data = full_df)
   }
