@@ -98,8 +98,8 @@ summary.plrd = function(object, ...) {
 #' Find the effective weight window
 #'
 #' Computes per-side distances from the threshold spanning the cumulative
-#' absolute plrd weight mass up to (but not exceeding) the target share,
-#' treating the two sides independently (asymmetric window).
+#' absolute plrd weight mass up to (but not exceeding) the target share.
+#' Treats the two sides independently which results in an asymmetric window.
 #'
 #' @param x plrd object
 #' @param percentage.cumulative.weights Share of cumulative absolute weights to retain on each side.
@@ -132,9 +132,10 @@ find_weight_window <- function(x, percentage.cumulative.weights = 0.99) {
 #' @param x plrd object
 #' @param type Type of plot the user wants to see. We offer three options: "default", "weights", and "combined". The "default" option shows the scatterplot of the original data with black curves that are representative regression functions in our data-driven function class. The dashed line shows the threshold, and the dotted lines indicate the window containing a percentage (99% by default) of the cumulative absolute plrd weights. The "weights" option plots plrd weights (note, two sets of plrd weights because we use cross-fitting). The "combined" option is a fancy plot combining both the scatterplot and the plot of plrd weights.
 #' @param percentage.cumulative.weights The percentage of the cumulative absolute weights user wants to keep (for visualization purposes only)
+#' @param spline.df The degree of freedom of the splines used to depict the model
 #' @param ... Additional arguments (currently ignored).
 #' @export
-plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, ...) {
+plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, spline.df = 3, ...) {
   op <- graphics::par(no.readonly = TRUE)
   c <- x$threshold
   ge.c <- as.numeric(x$X >= c)
@@ -144,9 +145,9 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, .
 
   # Fit splines with separate curvature above and below c, depending on fit, with df = 2 (default for now)
   if (isTRUE(x$diff.curvatures)) {
-    fit = stats::lm(Y0 ~ splines::ns(Xc, df = 2) + I(ge.c*Xc) + I(ge.c*Xc^2), data = full_df)
+    fit = stats::lm(Y0 ~ splines::ns(Xc, df = spline.df) + I(ge.c*Xc) + I(ge.c*Xc^2), data = full_df)
   } else {
-    fit = stats::lm(Y0 ~ splines::ns(Xc, df = 2) + I(ge.c*Xc), data = full_df)
+    fit = stats::lm(Y0 ~ splines::ns(Xc, df = spline.df) + I(ge.c*Xc), data = full_df)
   }
 
   # Plot model only in a window [threshold - l below, threshold + l above] containing the specified cumulative absolute weights (effective support)
