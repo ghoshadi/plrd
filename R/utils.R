@@ -64,7 +64,7 @@ coef.plrd = function(object, ...) {
 #' @param percentage.cumulative.weights The percentage of the cumulative absolute weights to determine effective sample size
 #' @param ... Additional arguments passed to print methods.
 #' @export
-print.plrd = function(x, digits = max(3L, getOption("digits") - 3L), percentage.cumulative.weights = 0.99, ...) {
+print.plrd = function(x, digits = max(3, getOption("digits") - 3), percentage.cumulative.weights = 0.99, ...) {
   cat(paste0("Partially linear regression discontinuity inference: \n"))
   cat(paste0("Threshold: ", signif(x$threshold, digits), "\n"))
   cat(paste0("Lipschitz constant: ", signif(x$Lipschitz.constant, digits), "\n"))
@@ -94,6 +94,55 @@ summary.plrd = function(object, ...) {
   out
 }
 
+#' Fit a natural spline under a Lipschitz constraint
+#'
+#' @param y The outcomes.
+#' @param x The centered running variable.
+#' @param w Indicator for observations above the threshold.
+#' @param spline.df Degrees of freedom of the natural spline.
+#' @param B Lipschitz constant for the second derivative.
+#' @param diff.curvatures Whether we consider different curvatures before and after the threshold.
+#' @return A constrained spline fit and its prediction function.
+#' @keywords internal
+#' @noRd
+fit_constrained_spline = function(y, x, w, spline.df, B, diff.curvatures) {
+  if (spline.df < 2) stop("'spline.df' must be at least 2.")
+
+  S = splines::ns(x, df = spline.df)
+  Z = cbind(1, S, w*x)
+  if (isTRUE(diff.curvatures)) Z = cbind(Z, w*x^2)
+
+  knots = attr(S, "knots")
+  bk = attr(S, "Boundary.knots")
+  ak = sort(c(rep(bk, 4), knots))
+
+  const = splines::splineDesign(ak, bk, ord = 4, derivs = c(2, 2))[, -1, drop = FALSE]
+  qrc = qr(t(const))
+
+  breaks = c(bk[1], knots, bk[2])
+  mid = (breaks[-length(breaks)] + breaks[-1]) / 2
+  D3 = splines::splineDesign(ak, mid, ord = 4,
+                             derivs = rep(3, length(mid)))[, -1, drop = FALSE]
+  G = t(qr.qty(qrc, t(D3)))[, -(1:2), drop = FALSE]
+
+  A = matrix(0, nrow(G), ncol(Z))
+  A[, 1 + seq_len(ncol(S))] = G
+
+  beta = quadprog::solve.QP(
+    Dmat = crossprod(Z),
+    dvec = drop(crossprod(Z, y)),
+    Amat = t(rbind(A, -A)),
+    bvec = rep(-B, 2*nrow(A))
+  )$solution
+
+  predict.fun = function(x.new, w.new) {
+    Z.new = cbind(1, predict(S, x.new), w.new*x.new)
+    if (isTRUE(diff.curvatures)) Z.new = cbind(Z.new, w.new*x.new^2)
+    drop(Z.new %*% beta)
+  }
+
+  list(coefficients = beta, predict = predict.fun)
+}
 
 #' Find the effective weight window
 #'
@@ -117,7 +166,7 @@ find_weight_window <- function(x, percentage.cumulative.weights = 0.99) {
     ord <- order(abs(xs - x$threshold))
     cum <- cumsum(abs(gs[ord])) / sum(abs(gs))
     idx <- which(cum < percentage.cumulative.weights)
-    i   <- if (length(idx)) idx[length(idx)] else 1L
+    i   <- if (length(idx)) idx[length(idx)] else 1
     abs(xs[ord][i] - x$threshold)
   }
 
@@ -135,8 +184,8 @@ find_weight_window <- function(x, percentage.cumulative.weights = 0.99) {
 #' @param x plrd object
 #' @param type Type of plot the user wants to see. We offer three options: "default", "weights", and "combined". The "default" option shows the scatterplot of the original data with black curves that are representative regression functions in our data-driven function class. The dashed line shows the threshold, and the dotted lines indicate the window containing a percentage (99% by default) of the cumulative absolute plrd weights. The "weights" option plots plrd weights (note, two sets of plrd weights because we use cross-fitting). The "combined" option is a fancy plot combining both the scatterplot and the plot of plrd weights.
 #' @param percentage.cumulative.weights The percentage of the cumulative absolute weights user wants to keep (for visualization purposes only)
-#' @param spline.df The degree of freedom of the splines used to depict the model
-#' @param ... Additional arguments (currently ignored).
+#' @param spline.df Degrees of freedom of the natural spline used to plot a representative member of the data-driven function class, constrained to satisfy the smoothness condition.
+#' #' @param ... Additional arguments (currently ignored).
 #' @export
 plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, spline.df = 3, ...) {
   op <- graphics::par(no.readonly = TRUE)
@@ -146,12 +195,15 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
                        Y0 = (x$Y - x$tau.hat * ge.threshold),
                        ge.threshold  = ge.threshold)
 
-  # Fit splines with separate curvature above and below c, depending on fit, with df = 3 (default for now)
-  if (isTRUE(x$diff.curvatures)) {
-    fit = stats::lm(Y0 ~ splines::ns(Xc, df = spline.df) + I(ge.threshold*Xc) + I(ge.threshold*Xc^2), data = full_df)
-  } else {
-    fit = stats::lm(Y0 ~ splines::ns(Xc, df = spline.df) + I(ge.threshold*Xc), data = full_df)
-  }
+  # Fit spline satisfying the smoothness restriction used by plrd
+  fit = fit_constrained_spline(
+    y = full_df$Y0,
+    x = full_df$Xc,
+    w = full_df$ge.threshold,
+    spline.df = spline.df,
+    B = x$Lipschitz.constant,
+    diff.curvatures = x$diff.curvatures
+  )
 
   # Plot model only in a window [threshold - l below, threshold + l above] containing the specified cumulative absolute weights (effective support)
   windows.effective.support  = find_weight_window(x, percentage.cumulative.weights)
@@ -163,8 +215,8 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
   xx_left  = seq(x_lo, threshold, by = step)
   xx_right = seq(threshold, x_hi, by = step)
 
-  yy_left  = as.numeric(stats::predict(fit, newdata = data.frame(Xc = xx_left  - threshold, ge.threshold = 0)))
-  yy_right = as.numeric(stats::predict(fit, newdata = data.frame(Xc = xx_right - threshold, ge.threshold = 1))) + x$tau.hat
+  yy_left  = fit$predict(xx_left - threshold, 0)
+  yy_right = fit$predict(xx_right - threshold, 1) + x$tau.hat
 
   args = list(...)
   if (is.null(dim(x$gamma))) {
