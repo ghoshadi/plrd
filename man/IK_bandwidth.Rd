@@ -4,7 +4,12 @@
 \alias{IK_bandwidth}
 \title{Compute MSE-optimal Imbens-Kalyanaraman bandwidth for a sharp RD.}
 \usage{
-IK_bandwidth(Y, X, threshold, kernel = c("triangular", "uniform"))
+IK_bandwidth(
+  Y,
+  X,
+  threshold,
+  kernel = c("triangular", "uniform", "epanechnikov")
+)
 }
 \arguments{
 \item{Y}{The outcomes.}
@@ -23,13 +28,12 @@ This convenience function computes weights using the Imbens-Kalyanaraman bandwid
 The code does exactly what the MATLAB code available on the author's website does.
 }
 \examples{
-\donttest{
+set.seed(42)
 n = 1000; threshold = 0
 X = runif(n, -1, 1)
 W = as.numeric(X >= threshold)
 Y = (1 + 2*W)*(1 + X^2) + 1 / (1 + exp(X)) + rnorm(n, sd = .5)
 out = IK_bandwidth(Y, X, threshold)
-}
 
 }
 \references{
