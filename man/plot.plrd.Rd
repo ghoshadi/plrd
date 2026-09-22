@@ -15,7 +15,7 @@
 \arguments{
 \item{x}{plrd object}
 
-\item{type}{The type of plot to display. We offer three options: "default", "weights", and "combined". All of these plots are generated post hoc and aim to depict how the estimation in PLRD was conducted.
+\item{type}{The type of plot to display. We offer three options: "default", "weights", and "combined". All of these plots are generated post hoc and aim to illustrate how the estimation in PLRD was conducted.
 The "default" option shows the scatterplot of the original data overlaid with black curves representing regression functions in our data-driven function class. The dashed line marks the threshold, and the dotted lines indicate the window containing a percentage of the cumulative absolute PLRD weights. The default option with 99\% is a good approximation of the effective support
 The "weights" option displays the PLRD weights that define the effective support. The absolute distance between the weight curve and the x-axis depicts how much weight was assigned to data falling in the corresponding support interval during the estimation. Note that there are two sets of PLRD weights because we use cross-fitting.
 The "combined" option displays both the scatterplot and the plot of PLRD weights, which helps contextualize the original data alongside the effective support.}
