@@ -326,94 +326,76 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
 #'  The Review of Economic Studies, 79(3).
 #'
 #' @examples
-#' \donttest{
+#' set.seed(42)
 #' n = 1000; threshold = 0
 #' X = runif(n, -1, 1)
 #' W = as.numeric(X >= threshold)
 #' Y = (1 + 2*W)*(1 + X^2) + 1 / (1 + exp(X)) + rnorm(n, sd = .5)
 #' out = IK_bandwidth(Y, X, threshold)
-#' }
 #'
 #' @export
-IK_bandwidth <- function(Y, X, threshold, kernel = c("triangular", "uniform")) {
-  if (threshold >= max(X) || threshold <= min(X)) {
+IK_bandwidth <- function(Y, X, threshold,
+                         kernel = c("triangular", "uniform", "epanechnikov")) {
+  if (length(Y) != length(X)) stop("'Y' and 'X' must have the same length.")
+  if (threshold >= max(X) || threshold <= min(X))
     stop("RD threshold is outside the running variable range.")
-  }
+
   kernel <- match.arg(kernel)
+  x <- X - threshold; n <- length(x)
+  left <- x < 0; right <- !left
 
-  x <- X - threshold
-  n <- length(Y)
+  # Density and conditional variances at the threshold
+  h1 <- 1.84 * stats::sd(x) * n^(-1/5)
+  i.min <- left & x >= -h1
+  i.plus <- right & x <= h1
+  n1 <- c(sum(i.min), sum(i.plus))
+  if (any(n1 <= 1)) stop("Insufficient observations near discontinuity.")
 
-  h.silverman <- 1.84 * stats::sd(x) * n^(-1/5)
+  sigma2 <- c(stats::var(Y[i.min]), stats::var(Y[i.plus]))
+  fc <- sum(n1) / (2 * n * h1)
 
-  i.plus.1 <- x >= 0 & x <= h.silverman
-  i.min.1  <- x < 0 & x >= -h.silverman
+  # Pilot third derivative and bandwidths for second derivatives
+  m3 <- 6 * unname(stats::lm.fit(cbind(1, right, x, x^2, x^3), Y)$coefficients[5])
 
-  y.ave.plus.1 <- mean(Y[i.plus.1])
-  y.ave.min.1  <- mean(Y[i.min.1])
+  h2 <- 7200^(1/7) *
+    (sigma2 / (fc * m3^2))^(1/7) *
+    c(sum(left), sum(right))^(-1/7)
 
-  dy.plus.1 <- Y[i.plus.1] - y.ave.plus.1
-  dy.min.1  <- Y[i.min.1]  - y.ave.min.1
+  i.min <- left & x >= -h2[1]
+  i.plus <- right & x <= h2[2]
+  n2 <- c(sum(i.min), sum(i.plus))
+  if (any(n2 <= 2)) stop("Insufficient observations near discontinuity.")
 
-  sigmas <- (sum(dy.plus.1^2) + sum(dy.min.1^2)) / (sum(i.plus.1) + sum(i.min.1))
-  fc <- (sum(i.plus.1) + sum(i.min.1)) / (2 * n * h.silverman)
+  m2 <- c(
+    2 * unname(stats::lm.fit(cbind(1, x[i.min], x[i.min]^2), Y[i.min])$coefficients[3]),
+    2 * unname(stats::lm.fit(cbind(1, x[i.plus], x[i.plus]^2), Y[i.plus])$coefficients[3])
+  )
 
-  # third derivative
-  median.plus <- stats::median(x[x >= 0])
-  median.min  <- stats::median(x[x < 0])
+  # Regularization and optimal bandwidth
+  r <- 2160 * sigma2 / (n2 * h2^4)
+  CK <- switch(kernel,
+               triangular   = 480^(1/5),
+               uniform      = 144^(1/5),
+               epanechnikov = (284160 / 847)^(1/5)
+  )
 
-  middle <- x >= median.min & x <= median.plus
-  x.mid <- x[middle]
-  y.mid <- Y[middle]
+  h.opt <- CK *
+    (sum(sigma2) / (fc * ((m2[2] - m2[1])^2 + sum(r))))^(1/5) *
+    n^(-1/5)
 
-  tt <- cbind(1, x.mid >= 0, x.mid, x.mid^2, x.mid^3)
-  gamma <- solve(t(tt) %*% tt, t(tt) %*% y.mid)
-  third.der <- 6 * gamma[5]
+  # Kernel weights, normalized to sum to one
+  u <- abs(x / h.opt)
+  weights <- switch(kernel,
+                    triangular   = pmax(1 - u, 0),
+                    uniform      = as.numeric(u <= 1),
+                    epanechnikov = pmax(1 - u^2, 0)
+  )
 
-  # second derivatives
-  h.plus.2 <- 3.56 * (sigmas / (fc * max(third.der^2, 0.01)))^(1/7) * sum(x >= 0)^(-1/7)
-  h.min.2  <- 3.56 * (sigmas / (fc * max(third.der^2, 0.01)))^(1/7) * sum(x < 0)^(-1/7)
-
-  i.min.3  <- x < 0 & x >= -h.min.2
-  i.plus.3 <- x >= 0 & x <= h.plus.2
-  if (sum(i.min.1) <= 2 || sum(i.plus.3) <= 2) {
-    stop("Insufficient observations near discontinuity.")
-  }
-
-  # left second derivative
-  x.min <- x[i.min.3]
-  y.min <- Y[i.min.3]
-  t.min <- cbind(1, x.min, x.min^2)
-  beta.min <- solve(t(t.min) %*% t.min, t(t.min) %*% y.min)
-  second.der.min <- 2 * beta.min[3]
-
-  # right second derivative
-  x.plus <- x[i.plus.3]
-  y.plus <- Y[i.plus.3]
-  t.plus <- cbind(1, x.plus, x.plus^2)
-  beta.plus <- solve(t(t.plus) %*% t.plus, t(t.plus) %*% y.plus)
-  second.der.plus <- 2 * beta.plus[3]
-
-  # regularization terms
-  r.plus <- 2160 * sigmas / (sum(i.plus.3) * h.plus.2^4)
-  r.min  <- 2160 * sigmas / (sum(i.min.3)  * h.min.2^4)
-
-  CK <- 3.4375
-  denom <- (second.der.plus - second.der.min)^2 + r.plus + r.min
-  h.opt <- CK * ((2 * sigmas) / (fc * denom))^(1/5) * n^(-1/5)
-
-  # Compute weights
-  dist <- abs((X - threshold) / h.opt)
-  if (kernel == "triangular") {
-    weights <- (1 - dist) * (dist <= 1) / h.opt
-    weights <- weights / sum(weights)
-  } else {
-    weights <- (1 - dist) * (dist <= 1)
-    weights[weights > 0 ] <- 1
-  }
+  if (!any(left & u <= 1) || !any(right & u <= 1))
+    stop("Insufficient observations in the calculated bandwidth.")
 
   list(
-    bandwidth = h.opt,
-    weights = weights
+    bandwidth = unname(h.opt),
+    weights = weights / sum(weights)
   )
 }
