@@ -4,7 +4,13 @@
 \alias{plot.plrd}
 \title{Plot a plrd object}
 \usage{
-\method{plot}{plrd}(x, type = "default", percentage.cumulative.weights = 0.99, spline.df, ...)
+\method{plot}{plrd}(
+  x,
+  type = "default",
+  percentage.cumulative.weights = 0.99,
+  spline.df = 3,
+  ...
+)
 }
 \arguments{
 \item{x}{plrd object}
@@ -13,9 +19,9 @@
 
 \item{percentage.cumulative.weights}{The percentage of the cumulative absolute weights user wants to keep (for visualization purposes only)}
 
-\item{spline.df}{The degree of freedom of the splines used to depict the model}
+\item{spline.df}{Degrees of freedom of the natural spline used to plot a representative member of the data-driven function class, constrained to satisfy the smoothness condition.}
 
-\item{...}{Additional arguments (currently ignored).}
+\item{...}{Additional graphical arguments to customize the plot, such as \code{xlim}, \code{ylab}, \code{main}, etc.}
 }
 \description{
 Plot a plrd object

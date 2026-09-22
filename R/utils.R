@@ -185,7 +185,7 @@ find_weight_window <- function(x, percentage.cumulative.weights = 0.99) {
 #' @param type Type of plot the user wants to see. We offer three options: "default", "weights", and "combined". The "default" option shows the scatterplot of the original data with black curves that are representative regression functions in our data-driven function class. The dashed line shows the threshold, and the dotted lines indicate the window containing a percentage (99% by default) of the cumulative absolute plrd weights. The "weights" option plots plrd weights (note, two sets of plrd weights because we use cross-fitting). The "combined" option is a fancy plot combining both the scatterplot and the plot of plrd weights.
 #' @param percentage.cumulative.weights The percentage of the cumulative absolute weights user wants to keep (for visualization purposes only)
 #' @param spline.df Degrees of freedom of the natural spline used to plot a representative member of the data-driven function class, constrained to satisfy the smoothness condition.
-#' #' @param ... Additional arguments (currently ignored).
+#' @param ... Additional graphical arguments to customize the plot, such as \code{xlim}, \code{ylab}, \code{main}, etc.
 #' @export
 plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, spline.df = 3, ...) {
   op <- graphics::par(no.readonly = TRUE)
@@ -218,20 +218,18 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
   yy_left  = fit$predict(xx_left - threshold, 0)
   yy_right = fit$predict(xx_right - threshold, 1) + x$tau.hat
 
+  # Extract weight coordinates
+  xs0 <- x$gamma.fun.0[[1]]
+  ys0 <- x$gamma.fun.0[[2]]
+  xs1 <- x$gamma.fun.1[[1]]
+  ys1 <- x$gamma.fun.1[[2]]
+
   args = list(...)
   if (is.null(dim(x$gamma))) {
-    if (!"xlim" %in% names(args)) {
-      args$xlim = range(x$X)
-    }
-    if (!"ylim" %in% names(args)) {
-      args$ylim = range(x$Y)
-    }
-    if (!"xlab" %in% names(args)) {
-      args$xlab = "X (running variable)"
-    }
-    if (!"ylab" %in% names(args)) {
-      args$ylab = "Y (response)"
-    }
+    if (!"xlim" %in% names(args)) args$xlim = if (type == "weights") range(xs0, xs1) else range(x$X)
+    if (!"ylim" %in% names(args)) args$ylim = if (type == "weights") range(ys0, ys1) else range(x$Y)
+    if (!"xlab" %in% names(args)) args$xlab = "X (running variable)"
+    if (!"ylab" %in% names(args)) args$ylab = if (type == "weights") expression("plrd weights " ~ hat(gamma)(X)) else "Y (response)"
     args$x = NA; args$y = NA
     if(type == "default"){
       graphics::layout(matrix(1))
@@ -247,17 +245,7 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
     } else if (type == "weights"){
       graphics::layout(matrix(1))
       graphics::par(mar = c(4.5, 4.5, 2, 2))
-      xs0 <- x$gamma.fun.0[[1]]
-      ys0 <- x$gamma.fun.0[[2]]
-      xs1 <- x$gamma.fun.1[[1]]
-      ys1 <- x$gamma.fun.1[[2]]
-      plot(
-        NA, type = "n",
-        xlim = range(xs0, xs1),
-        ylim = range(ys0, ys1),
-        xlab = args$xlab,
-        ylab = expression("plrd weights " ~ hat(gamma)(X))
-      )
+      do.call(graphics::plot, utils::modifyList(args, list(type = "n")))
       if (length (unique(c(xs0, xs1))) > 40) {
         graphics::points(xs0, ys0, col = "#CC3311", pch = 20, cex = 0.5)
         graphics::points(xs1, ys1, col = "#009E73", pch = 20, cex = 0.5)
@@ -272,7 +260,7 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
     } else if (type == "combined"){
       graphics::layout(matrix(1:2, ncol = 1), heights = c(4, 3.5))
       graphics::par(mar = c(0, 4.5, 2, 2))
-      do.call(graphics::plot, c(args, xaxt = "n", yaxt = "n"))
+      do.call(graphics::plot, utils::modifyList(args, list(xaxt = "n", yaxt = "n")))
       graphics::axis(2, las = 1)
       graphics::points(x$X, x$Y,
                        col = c("#CC3311","#009E73")[as.numeric(x$X >= threshold)+1],
@@ -282,10 +270,6 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
       graphics::abline(v = threshold, lwd = 1.5, lty = 2)
       graphics::abline(v = c(x_lo, x_hi), lwd = 1.5, lty = 3)
       graphics::par(mar = c(4.5, 4.5, 0, 2))
-      xs0 <- x$gamma.fun.0[[1]]
-      ys0 <- x$gamma.fun.0[[2]]
-      xs1 <- x$gamma.fun.1[[1]]
-      ys1 <- x$gamma.fun.1[[2]]
       plot(
         NA, type = "n",
         xlim = args$xlim,
@@ -315,6 +299,14 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
   } else {
     stop("Corrupted object.")
   }
+  invisible(list(
+    main = list(
+      x_coordinates = c(xx_left, xx_right),
+      y_coordinates = c(yy_left, yy_right)),
+    gamma = list(
+      x_coordinates = c(xs0, xs1),
+      y_coordinates = c(ys0, ys1))
+  ))
 }
 
 #' Compute MSE-optimal Imbens-Kalyanaraman bandwidth for a sharp RD.

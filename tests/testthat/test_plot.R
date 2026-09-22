@@ -16,6 +16,21 @@ test_that("plot plrd rejects invalid plot types and effective support windows", 
   expect_no_error(find_weight_window(fit, percentage.cumulative.weights = 1)) # Shows all weights
 
   expect_error(plot(fit, type = "incompatible.plot"), "select plot type")
+
+  # Test extraction of coordinates for main and weight curves
+  plotting.coordinates <- plot(fit, type = "combined")
+  expect_no_error(plot(plotting.coordinates$main$x_coordinates, plotting.coordinates$main$y_coordinates,
+       xlab = "Running Variable (X)",
+       ylab = "Response (Y)"))
+  expect_equal(length(plotting.coordinates$main$x_coordinates),
+               length(plotting.coordinates$main$y_coordinates))
+
+  expect_no_error(plot(plotting.coordinates$gamma$x_coordinates, plotting.coordinates$gamma$y_coordinates,
+                       xlab = "Running Variable (X)",
+                       ylab = "Weight"
+                       ))
+  expect_equal(length(plotting.coordinates$gamma$x_coordinates),
+               length(plotting.coordinates$gamma$y_coordinates))
 })
 
 
