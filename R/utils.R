@@ -108,25 +108,69 @@ summary.plrd = function(object, ...) {
 fit_constrained_spline = function(y, x, w, spline.df, B, diff.curvatures) {
   if (spline.df < 2) stop("'spline.df' must be at least 2.")
 
-  S = splines::ns(x, df = spline.df)
-  Z = cbind(1, S, w*x)
-  if (isTRUE(diff.curvatures)) Z = cbind(Z, w*x^2)
+  get_G = function(S) {
+    knots = attr(S, "knots")
+    bk = attr(S, "Boundary.knots")
+    ak = sort(c(rep(bk, 4), knots))
 
-  knots = attr(S, "knots")
-  bk = attr(S, "Boundary.knots")
-  ak = sort(c(rep(bk, 4), knots))
+    const = splines::splineDesign(
+      ak, bk, ord = 4, derivs = c(2, 2)
+    )[, -1, drop = FALSE]
+    qrc = qr(t(const))
 
-  const = splines::splineDesign(ak, bk, ord = 4, derivs = c(2, 2))[, -1, drop = FALSE]
-  qrc = qr(t(const))
+    breaks = c(bk[1], knots, bk[2])
+    mid = (breaks[-length(breaks)] + breaks[-1]) / 2
+    D3 = splines::splineDesign(
+      ak, mid, ord = 4, derivs = rep(3, length(mid))
+    )[, -1, drop = FALSE]
 
-  breaks = c(bk[1], knots, bk[2])
-  mid = (breaks[-length(breaks)] + breaks[-1]) / 2
-  D3 = splines::splineDesign(ak, mid, ord = 4,
-                             derivs = rep(3, length(mid)))[, -1, drop = FALSE]
-  G = t(qr.qty(qrc, t(D3)))[, -(1:2), drop = FALSE]
+    list(
+      G = t(qr.qty(qrc, t(D3)))[, -(1:2), drop = FALSE],
+      breaks = breaks
+    )
+  }
 
-  A = matrix(0, nrow(G), ncol(Z))
-  A[, 1 + seq_len(ncol(S))] = G
+  if (isTRUE(diff.curvatures)) {
+    i0 = w == 0
+    i1 = w == 1
+    bk = range(x)
+
+    # Separate spline bases
+    S0 = splines::ns(x[i0], df = spline.df, Boundary.knots = bk)
+    S1 = splines::ns(x[i1], df = spline.df, Boundary.knots = bk)
+    p = spline.df
+
+    s00 = drop(stats::predict(S0, 0))
+    s10 = drop(stats::predict(S1, 0))
+
+    Z0 = matrix(0, length(x), p)
+    Z1 = matrix(0, length(x), p)
+    Z0[i0, ] = sweep(S0, 2, s00)
+    Z1[i1, ] = sweep(S1, 2, s10)
+    Z = cbind(1, Z0, Z1)
+
+    g0 = get_G(S0)
+    g1 = get_G(S1)
+
+    G0 = g0$G[g0$breaks[-length(g0$breaks)] < 0, , drop = FALSE]
+    G1 = g1$G[g1$breaks[-1] > 0, , drop = FALSE]
+
+    A = matrix(0, nrow(G0) + nrow(G1), ncol(Z))
+    A[seq_len(nrow(G0)), 1 + seq_len(p)] = G0
+    A[nrow(G0) + seq_len(nrow(G1)), 1 + p + seq_len(p)] = G1
+
+  } else {
+    S = splines::ns(x, df = spline.df)
+    p = ncol(S)
+    Z = cbind(1, S, w*x)
+
+    g = get_G(S)
+    A = matrix(0, nrow(g$G), ncol(Z))
+    A[, 1 + seq_len(p)] = g$G
+  }
+
+  if (qr(Z)$rank < ncol(Z))
+    stop("'spline.df' is too large for the available running-variable support.")
 
   beta = quadprog::solve.QP(
     Dmat = crossprod(Z),
@@ -136,14 +180,20 @@ fit_constrained_spline = function(y, x, w, spline.df, B, diff.curvatures) {
   )$solution
 
   predict.fun = function(x.new, w.new) {
-    Z.new = cbind(1, stats::predict(S, x.new), w.new*x.new)
-    if (isTRUE(diff.curvatures)) Z.new = cbind(Z.new, w.new*x.new^2)
+    if (isTRUE(diff.curvatures)) {
+      Z.new = cbind(
+        1,
+        (1-w.new) * sweep(stats::predict(S0, x.new), 2, s00),
+        w.new * sweep(stats::predict(S1, x.new), 2, s10)
+      )
+    } else {
+      Z.new = cbind(1, stats::predict(S, x.new), w.new*x.new)
+    }
     drop(Z.new %*% beta)
   }
 
   list(coefficients = beta, predict = predict.fun)
 }
-
 #' Find the effective weight window
 #'
 #' Computes per-side distances from the threshold spanning the cumulative
