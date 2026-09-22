@@ -186,6 +186,7 @@ find_weight_window <- function(x, percentage.cumulative.weights = 0.99) {
 #' @param percentage.cumulative.weights The percentage of the cumulative absolute weights user wants to keep (for visualization purposes only)
 #' @param spline.df Degrees of freedom of the natural spline used to plot a representative member of the data-driven function class, constrained to satisfy the smoothness condition.
 #' @param ... Additional graphical arguments to customize the plot, such as \code{xlim}, \code{ylab}, \code{main}, etc.
+#' @return A list of plot coordinates for the main plot and the weight plot, including the upper and lower bound of the window that contains the percentage cumulative weights
 #' @export
 plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, spline.df = 3, ...) {
   op <- graphics::par(no.readonly = TRUE)
@@ -305,7 +306,8 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
       y_coordinates = c(yy_left, yy_right)),
     gamma = list(
       x_coordinates = c(xs0, xs1),
-      y_coordinates = c(ys0, ys1))
+      y_coordinates = c(ys0, ys1),
+      window_weights = c(x_lo, x_hi))
   ))
 }
 

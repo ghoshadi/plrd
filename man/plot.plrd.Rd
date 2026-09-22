@@ -23,6 +23,9 @@
 
 \item{...}{Additional graphical arguments to customize the plot, such as \code{xlim}, \code{ylab}, \code{main}, etc.}
 }
+\value{
+A list of plot coordinates for the main plot and the weight plot, including the upper and lower bound of the window that contains the percentage cumulative weights
+}
 \description{
 Plot a plrd object
 }
