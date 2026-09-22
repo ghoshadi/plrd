@@ -64,7 +64,7 @@ coef.plrd = function(object, ...) {
 #' @param percentage.cumulative.weights The percentage of the cumulative absolute weights to determine effective sample size
 #' @param ... Additional arguments passed to print methods.
 #' @export
-print.plrd = function(x, digits = max(3L, getOption("digits") - 3L), percentage.cumulative.weights = 0.99, ...) {
+print.plrd = function(x, digits = max(3, getOption("digits") - 3), percentage.cumulative.weights = 0.99, ...) {
   cat(paste0("Partially linear regression discontinuity inference: \n"))
   cat(paste0("Threshold: ", signif(x$threshold, digits), "\n"))
   cat(paste0("Lipschitz constant: ", signif(x$Lipschitz.constant, digits), "\n"))
@@ -94,26 +94,130 @@ summary.plrd = function(object, ...) {
   out
 }
 
+#' Fit a natural spline under a Lipschitz constraint
+#'
+#' @param y The outcomes.
+#' @param x The centered running variable.
+#' @param w Indicator for observations above the threshold.
+#' @param spline.df Degrees of freedom of the natural spline.
+#' @param B Lipschitz constant for the second derivative.
+#' @param diff.curvatures Whether we consider different curvatures before and after the threshold.
+#' @return A constrained spline fit and its prediction function.
+#' @keywords internal
+#' @noRd
+fit_constrained_spline = function(y, x, w, spline.df, B, diff.curvatures) {
+  if (spline.df < 2) stop("'spline.df' must be at least 2.")
+
+  S = splines::ns(x, df = spline.df)
+  Z = cbind(1, S, w*x)
+  if (isTRUE(diff.curvatures)) Z = cbind(Z, w*x^2)
+
+  knots = attr(S, "knots")
+  bk = attr(S, "Boundary.knots")
+  ak = sort(c(rep(bk, 4), knots))
+
+  const = splines::splineDesign(ak, bk, ord = 4, derivs = c(2, 2))[, -1, drop = FALSE]
+  qrc = qr(t(const))
+
+  breaks = c(bk[1], knots, bk[2])
+  mid = (breaks[-length(breaks)] + breaks[-1]) / 2
+  D3 = splines::splineDesign(ak, mid, ord = 4,
+                             derivs = rep(3, length(mid)))[, -1, drop = FALSE]
+  G = t(qr.qty(qrc, t(D3)))[, -(1:2), drop = FALSE]
+
+  A = matrix(0, nrow(G), ncol(Z))
+  A[, 1 + seq_len(ncol(S))] = G
+
+  beta = quadprog::solve.QP(
+    Dmat = crossprod(Z),
+    dvec = drop(crossprod(Z, y)),
+    Amat = t(rbind(A, -A)),
+    bvec = rep(-B, 2*nrow(A))
+  )$solution
+
+  predict.fun = function(x.new, w.new) {
+    Z.new = cbind(1, stats::predict(S, x.new), w.new*x.new)
+    if (isTRUE(diff.curvatures)) Z.new = cbind(Z.new, w.new*x.new^2)
+    drop(Z.new %*% beta)
+  }
+
+  list(coefficients = beta, predict = predict.fun)
+}
+
+#' Find the effective weight window
+#'
+#' Computes per-side distances from the threshold spanning the cumulative
+#' absolute plrd weight mass up to (but not exceeding) the target share.
+#' Treats the two sides independently which results in an asymmetric window.
+#'
+#' @param x plrd object
+#' @param percentage.cumulative.weights Share of cumulative absolute weights to retain on each side.
+#' @return A list with per-side distances (\code{l_below}, \code{l_above}) from the threshold.
+#' @keywords internal
+find_weight_window <- function(x, percentage.cumulative.weights = 0.99) {
+  if (percentage.cumulative.weights <= 0 || percentage.cumulative.weights > 1) {
+    stop("`percentage.cumulative.weights` must be in (0, 1].")
+    }
+  xs0 <- x$gamma.fun.0[[1]]; gs0 <- x$gamma.fun.0[[2]]  # below
+  xs1 <- x$gamma.fun.1[[1]]; gs1 <- x$gamma.fun.1[[2]]  # above
+
+  # Find farthest point still below target percentage (else nearest)
+  weight_quantile_distance <- function(xs, gs) {
+    ord <- order(abs(xs - x$threshold))
+    cum <- cumsum(abs(gs[ord])) / sum(abs(gs))
+    idx <- which(cum < percentage.cumulative.weights)
+    i   <- if (length(idx)) idx[length(idx)] else 1
+    abs(xs[ord][i] - x$threshold)
+  }
+
+  l_below <- weight_quantile_distance(xs0, gs0)
+  l_above <- weight_quantile_distance(xs1, gs1)
+
+  list(
+    l_below = l_below,
+    l_above = l_above
+  )
+}
+
 #' Plot a plrd object
 #'
 #' @param x plrd object
 #' @param type Type of plot the user wants to see. We offer three options: "default", "weights", and "combined". The "default" option shows the scatterplot of the original data with black curves that are representative regression functions in our data-driven function class. The dashed line shows the threshold, and the dotted lines indicate the window containing a percentage (99% by default) of the cumulative absolute plrd weights. The "weights" option plots plrd weights (note, two sets of plrd weights because we use cross-fitting). The "combined" option is a fancy plot combining both the scatterplot and the plot of plrd weights.
 #' @param percentage.cumulative.weights The percentage of the cumulative absolute weights user wants to keep (for visualization purposes only)
-#' @param ... Additional arguments (currently ignored).
+#' @param spline.df Degrees of freedom of the natural spline used to plot a representative member of the data-driven function class, constrained to satisfy the smoothness condition.
+#' #' @param ... Additional arguments (currently ignored).
 #' @export
-plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, ...) {
+plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, spline.df = 3, ...) {
   op <- graphics::par(no.readonly = TRUE)
-  full_df = data.frame(X = (x$X-x$threshold),
-                       Y = (x$Y - x$tau.hat*x$W),
-                       W = x$W,
-                       gamma = x$gamma)
-  # Finding a window [threshold - l, threshold + l] containing most of the weights
-  l = with(full_df, uniroot(function(b) sum(abs(gamma)[abs(X) <= b]) / sum(abs(gamma)) - percentage.cumulative.weights,
-                            lower = 0, upper = max(abs(X)))$root)
-  df = subset(full_df, abs(full_df$X) <= l)
-  xx = seq(from = -l, to = l, length = 200) + x$threshold
-  coefs = stats::coef(stats::lm(Y ~ X + I(W*X) + I(X^2),  data = df))
-  yy = x$tau.hat*as.numeric(xx>x$threshold) + cbind(1, xx-x$threshold, (xx-x$threshold)*as.numeric(xx>x$threshold), (xx-x$threshold)^2) %*% coefs
+  threshold <- x$threshold
+  ge.threshold <- as.numeric(x$X >= threshold) # Introduce to avoid any issues for implementation of fuzzy RD.
+  full_df = data.frame(Xc = (x$X - threshold),
+                       Y0 = (x$Y - x$tau.hat * ge.threshold),
+                       ge.threshold  = ge.threshold)
+
+  # Fit spline satisfying the smoothness restriction used by plrd
+  fit = fit_constrained_spline(
+    y = full_df$Y0,
+    x = full_df$Xc,
+    w = full_df$ge.threshold,
+    spline.df = spline.df,
+    B = x$Lipschitz.constant,
+    diff.curvatures = x$diff.curvatures
+  )
+
+  # Plot model only in a window [threshold - l below, threshold + l above] containing the specified cumulative absolute weights (effective support)
+  windows.effective.support  = find_weight_window(x, percentage.cumulative.weights)
+  x_lo = threshold - windows.effective.support$l_below
+  x_hi = threshold + windows.effective.support$l_above
+
+  # Generate grid on running variable for x coordinates with corresponding y coordinates within effective support
+  step = min(threshold - x_lo, x_hi - threshold) / 200
+  xx_left  = seq(x_lo, threshold, by = step)
+  xx_right = seq(threshold, x_hi, by = step)
+
+  yy_left  = fit$predict(xx_left - threshold, 0)
+  yy_right = fit$predict(xx_right - threshold, 1) + x$tau.hat
+
   args = list(...)
   if (is.null(dim(x$gamma))) {
     if (!"xlim" %in% names(args)) {
@@ -134,11 +238,12 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, .
       graphics::par(mar = c(4.5, 4.5, 2, 2))
       do.call(graphics::plot, args)
       graphics::points(x$X, x$Y,
-                       col = c("#CC3311","#009E73")[as.numeric(x$X>x$threshold)+1],
+                       col = c("#CC3311","#009E73")[as.numeric(x$X >= threshold)+1],
                        cex = .5)
-      graphics::lines(xx, yy, col = 'black', lwd = 3)
-      graphics::abline(v = x$threshold, lwd = 1.5, lty = 2)
-      graphics::abline(v = c(-l,l)+x$threshold, lwd = 1.5, lty = 3)
+      graphics::lines(xx_left,  yy_left,  col = 'black', lwd = 3)
+      graphics::lines(xx_right, yy_right, col = 'black', lwd = 3)
+      graphics::abline(v = threshold, lwd = 1.5, lty = 2)
+      graphics::abline(v = c(x_lo, x_hi), lwd = 1.5, lty = 3)
     } else if (type == "weights"){
       graphics::layout(matrix(1))
       graphics::par(mar = c(4.5, 4.5, 2, 2))
@@ -153,16 +258,16 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, .
         xlab = args$xlab,
         ylab = expression("plrd weights " ~ hat(gamma)(X))
       )
-      if (length (unique(c(xs0, xs1)) > 40)) {
+      if (length (unique(c(xs0, xs1))) > 40) {
         graphics::points(xs0, ys0, col = "#CC3311", pch = 20, cex = 0.5)
         graphics::points(xs1, ys1, col = "#009E73", pch = 20, cex = 0.5)
       } else {
         graphics::lines(xs0, ys0, col = "#CC3311", lwd = 1)
         graphics::lines(xs1, ys1, col = "#009E73", lwd = 1)
       }
-      graphics::abline(v = (c(-l,l)+x$threshold),
+      graphics::abline(v = c(x_lo, x_hi),
                        lwd = 1.5, lty = 3)
-      graphics::abline(v = x$threshold, lwd = 1.5, lty = 2)
+      graphics::abline(v = threshold, lwd = 1.5, lty = 2)
       graphics::abline(h = 0, lwd = 1.5, lty = 2)
     } else if (type == "combined"){
       graphics::layout(matrix(1:2, ncol = 1), heights = c(4, 3.5))
@@ -170,11 +275,12 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, .
       do.call(graphics::plot, c(args, xaxt = "n", yaxt = "n"))
       graphics::axis(2, las = 1)
       graphics::points(x$X, x$Y,
-                       col = c("#CC3311","#009E73")[as.numeric(x$X>x$threshold)+1],
+                       col = c("#CC3311","#009E73")[as.numeric(x$X >= threshold)+1],
                        cex = .5)
-      graphics::lines(xx, yy, col = 'black', lwd = 3)
-      graphics::abline(v = x$threshold, lwd = 1.5, lty = 2)
-      graphics::abline(v = c(-l,l)+x$threshold, lwd = 1.5, lty = 3)
+      graphics::lines(xx_left,  yy_left,  col = 'black', lwd = 3)
+      graphics::lines(xx_right, yy_right, col = 'black', lwd = 3)
+      graphics::abline(v = threshold, lwd = 1.5, lty = 2)
+      graphics::abline(v = c(x_lo, x_hi), lwd = 1.5, lty = 3)
       graphics::par(mar = c(4.5, 4.5, 0, 2))
       xs0 <- x$gamma.fun.0[[1]]
       ys0 <- x$gamma.fun.0[[2]]
@@ -182,7 +288,7 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, .
       ys1 <- x$gamma.fun.1[[2]]
       plot(
         NA, type = "n",
-        xlim = range(xx),
+        xlim = args$xlim,
         ylim = range(ys0, ys1),
         xlab = args$xlab,
         ylab = expression(hat(gamma)(X)),
@@ -190,16 +296,16 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, .
       )
       graphics::axis(2, at = pretty(range(ys0, ys1), n = 4),
                      las = 1, cex.axis = 0.9)
-      if (length (unique(c(xs0, xs1)) > 40)) {
+      if (length (unique(c(xs0, xs1))) > 40) {
         graphics::points(xs0, ys0, col = "#CC3311", pch = 20, cex = 0.5)
         graphics::points(xs1, ys1, col = "#009E73", pch = 20, cex = 0.5)
       } else {
         graphics::lines(xs0, ys0, col = "#CC3311", lwd = 1)
         graphics::lines(xs1, ys1, col = "#009E73", lwd = 1)
       }
-      graphics::abline(v = (c(-l,l)+x$threshold),
+      graphics::abline(v = c(x_lo, x_hi),
                        lwd = 1.5, lty = 3)
-      graphics::abline(v = x$threshold, lwd = 1.5, lty = 2)
+      graphics::abline(v = threshold, lwd = 1.5, lty = 2)
       graphics::abline(h = 0, lwd = 1.5, lty = 2)
     } else {
       stop("Please select plot type among 'default', 'weights', or 'combined'.")
@@ -210,6 +316,7 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, .
     stop("Corrupted object.")
   }
 }
+
 #' Compute MSE-optimal Imbens-Kalyanaraman bandwidth for a sharp RD.
 #'
 #' This convenience function computes weights using the Imbens-Kalyanaraman bandwidth procedure.
