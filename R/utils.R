@@ -182,11 +182,14 @@ find_weight_window <- function(x, percentage.cumulative.weights = 0.99) {
 #' Plot a plrd object
 #'
 #' @param x plrd object
-#' @param type Type of plot the user wants to see. We offer three options: "default", "weights", and "combined". The "default" option shows the scatterplot of the original data with black curves that are representative regression functions in our data-driven function class. The dashed line shows the threshold, and the dotted lines indicate the window containing a percentage (99% by default) of the cumulative absolute plrd weights. The "weights" option plots plrd weights (note, two sets of plrd weights because we use cross-fitting). The "combined" option is a fancy plot combining both the scatterplot and the plot of plrd weights.
-#' @param percentage.cumulative.weights The percentage of the cumulative absolute weights user wants to keep (for visualization purposes only)
+#' @param type The type of plot to display. We offer three options: "default", "weights", and "combined". All of these plots are generated post hoc and aim to depict how the estimation in PLRD was conducted.
+#' The "default" option shows the scatterplot of the original data overlaid with black curves representing regression functions in our data-driven function class. The dashed line marks the threshold, and the dotted lines indicate the window containing a percentage of the cumulative absolute PLRD weights. The default option with 99% is a good approximation of the effective support
+#' The "weights" option displays the PLRD weights that define the effective support. The absolute distance between the weight curve and the x-axis depicts how much weight was assigned to data falling in the corresponding support interval during the estimation. Note that there are two sets of PLRD weights because we use cross-fitting.
+#' The "combined" option displays both the scatterplot and the plot of PLRD weights, which helps contextualize the original data alongside the effective support.
+#' @param percentage.cumulative.weights The percentage of the cumulative absolute weights that the user wants to display.
 #' @param spline.df Degrees of freedom of the natural spline used to plot a representative member of the data-driven function class, constrained to satisfy the smoothness condition.
 #' @param ... Additional graphical arguments to customize the plot, such as \code{xlim}, \code{ylab}, \code{main}, etc.
-#' @return A list of plot coordinates for the main plot and the weight plot, including the upper and lower bound of the window that contains the percentage cumulative weights
+#' @return A list of plot coordinates for the main plot and the weight plot, including the upper and lower bound of the window that contains the percentage cumulative weights.
 #' @export
 plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, spline.df = 3, ...) {
   op <- graphics::par(no.readonly = TRUE)
