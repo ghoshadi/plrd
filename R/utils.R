@@ -218,6 +218,12 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
   yy_left  = fit$predict(xx_left - threshold, 0)
   yy_right = fit$predict(xx_right - threshold, 1) + x$tau.hat
 
+  # Extract weight coordinates
+  xs0 <- x$gamma.fun.0[[1]]
+  ys0 <- x$gamma.fun.0[[2]]
+  xs1 <- x$gamma.fun.1[[1]]
+  ys1 <- x$gamma.fun.1[[2]]
+
   args = list(...)
   if (is.null(dim(x$gamma))) {
     if (!"xlim" %in% names(args)) {
@@ -282,10 +288,6 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
       graphics::abline(v = threshold, lwd = 1.5, lty = 2)
       graphics::abline(v = c(x_lo, x_hi), lwd = 1.5, lty = 3)
       graphics::par(mar = c(4.5, 4.5, 0, 2))
-      xs0 <- x$gamma.fun.0[[1]]
-      ys0 <- x$gamma.fun.0[[2]]
-      xs1 <- x$gamma.fun.1[[1]]
-      ys1 <- x$gamma.fun.1[[2]]
       plot(
         NA, type = "n",
         xlim = args$xlim,
@@ -315,6 +317,14 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
   } else {
     stop("Corrupted object.")
   }
+  invisible(list(
+    main = list(
+      x_coordinates = c(xx_left, xx_right),
+      y_coordinates = c(yy_left, yy_right)),
+    gamma = list(
+      x_coordinates = c(xs0, xs1),
+      y_coordinates = c(ys0, ys1))
+  ))
 }
 
 #' Compute MSE-optimal Imbens-Kalyanaraman bandwidth for a sharp RD.

@@ -6,7 +6,7 @@
 \usage{
 \method{print}{plrd}(
   x,
-  digits = max(3L, getOption("digits") - 3L),
+  digits = max(3, getOption("digits") - 3),
   percentage.cumulative.weights = 0.99,
   ...
 )
