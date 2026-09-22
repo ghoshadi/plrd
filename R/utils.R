@@ -136,7 +136,7 @@ fit_constrained_spline = function(y, x, w, spline.df, B, diff.curvatures) {
   )$solution
 
   predict.fun = function(x.new, w.new) {
-    Z.new = cbind(1, predict(S, x.new), w.new*x.new)
+    Z.new = cbind(1, stats::predict(S, x.new), w.new*x.new)
     if (isTRUE(diff.curvatures)) Z.new = cbind(Z.new, w.new*x.new^2)
     drop(Z.new %*% beta)
   }
