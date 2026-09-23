@@ -9,6 +9,7 @@
   type = "default",
   percentage.cumulative.weights = 0.99,
   spline.df = 3,
+  annotate.tau = FALSE,
   ...
 )
 }
@@ -27,8 +28,14 @@ estimator's effective support.}
 representative member of the data-driven function class, constrained to
 satisfy the smoothness condition of PLRD.}
 
+\item{annotate.tau}{If \code{TRUE}, marks the PLRD estimate with a curly
+brace in the plot.}
+
 \item{...}{Additional graphical arguments to customize the plot, such as
-\code{xlim}, \code{ylab}, \code{main}, etc.}
+\code{xlim}, \code{ylim}, \code{xlab}, \code{ylab} and \code{main}.
+\code{col} may contain up to three colors for the two sides of the threshold
+and the optional PLRD annotation. \code{pch} and \code{cex} may be scalars or
+vectors of length two to customize the two sides of the threshold separately.}
 }
 \value{
 A list of plot coordinates for the main plot and the weight plot,
@@ -47,11 +54,11 @@ data-driven function class. These curves are fitted for visualization and
 are not used to compute the PLRD estimate.
 
 The "weights" option displays the fitted PLRD weights. It shows two sets of
-weights because we use two-fold cross-fitting.
+weights since we use two-fold cross-fitting.
 
 The "combined" option displays both the default plot and the PLRD weights.
 
 The dashed line marks the threshold, and the dotted lines indicate the window
-containing a specified percentage of the cumulative absolute PLRD weight
-mass on each side of the threshold.
+containing a specified percentage of the cumulative absolute PLRD weight mass
+on each side of the threshold.
 }

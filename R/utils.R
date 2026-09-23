@@ -194,6 +194,7 @@ fit_constrained_spline = function(y, x, w, spline.df, B, diff.curvatures) {
 
   list(coefficients = beta, predict = predict.fun)
 }
+
 #' Find the effective weight window
 #'
 #' Computes per-side distances from the threshold spanning the cumulative
@@ -229,6 +230,84 @@ find_weight_window <- function(x, percentage.cumulative.weights = 0.99) {
   )
 }
 
+#' Annotate the PLRD estimate in the plot
+#'
+#' Adds a curly brace marking the PLRD estimate.
+#'
+#' @param threshold The treatment threshold.
+#' @param fit Constrained spline fit returned by \code{fit_constrained_spline()}.
+#' @param tau.hat The PLRD point estimate.
+#' @param width.mult Multiplicative factor controlling the horizontal width of
+#' the curly brace.
+#' @param col Color of the curly brace and PLRD annotation.
+#' @return Returns \code{NULL}; draws directly on the current graphics device.
+#' @keywords internal
+#' @noRd
+draw_tau_brace <- function(threshold, fit, tau.hat,
+                           width.mult = 1, col = "#332288") {
+  y0 = fit$predict(0, 0)
+  y1 = fit$predict(0, 1) + tau.hat
+  usr = graphics::par("usr"); pin = graphics::par("pin")
+  xr = diff(usr[1:2]); yr = diff(usr[3:4])
+  h = abs(y1 - y0)
+
+  if (!is.finite(h) || h <= sqrt(.Machine$double.eps) *
+      max(1, abs(y0), abs(y1))) return(invisible(NULL))
+
+  yb = min(y0, y1); ym = (y0 + y1)/2
+  dy = y1 - y0; d = .03*xr
+
+  # Put the brace where the fitted curve locally moves away from the jump
+  side = if (-sign(dy)*(fit$predict(-d, 0) - y0) >=
+             sign(dy)*(fit$predict(d, 1) + tau.hat - y1)) -1 else 1
+
+  bw = min(width.mult*.12*h*(xr/pin[1])/(yr/pin[2]),
+           width.mult*.035*xr)
+
+  bezier = function(p0, p1, p2, p3) {
+    t = seq(0, 1, length.out = 40); s = 1-t
+    cbind(s^3*p0[1] + 3*s^2*t*p1[1] + 3*s*t^2*p2[1] + t^3*p3[1],
+          s^3*p0[2] + 3*s^2*t*p1[2] + 3*s*t^2*p2[2] + t^3*p3[2])
+  }
+
+  brace = rbind(
+    bezier(c(0, 1),     c(.80, 1),   c(.72, .85), c(.72, .72)),
+    bezier(c(.72, .72), c(.72, .58), c(.65, .54), c(1, .50))[-1, ],
+    bezier(c(1, .50),   c(.65, .46), c(.72, .42), c(.72, .28))[-1, ],
+    bezier(c(.72, .28), c(.72, .15), c(.80, 0),   c(0, 0))[-1, ]
+  )
+
+  graphics::lines(
+    threshold + side*bw*brace[, 1],
+    yb + h*brace[, 2],
+    col = col, lwd = 1.8, xpd = NA
+  )
+
+  label = expression(widehat(tau)[scriptstyle(plain(plrd))])
+  label.x = threshold + side*(bw + .004*xr)
+  label.width = graphics::strwidth(label, cex = 1.15, family = "mono")
+  label.height = graphics::strheight(label, cex = 1.15, family = "mono")
+  pad.x = .003*xr; pad.y = .12*label.height
+
+  graphics::rect(
+    label.x - (side < 0)*label.width - pad.x,
+    ym - label.height/2 - pad.y,
+    label.x + (side > 0)*label.width + pad.x,
+    ym + label.height/2 + pad.y,
+    col = grDevices::adjustcolor("white", alpha.f = .7),
+    border = NA, xpd = NA
+  )
+
+  graphics::text(
+    label.x, ym, label,
+    adj = c(side < 0, .5),
+    cex = 1.15, family = "mono",
+    col = col, xpd = NA
+  )
+
+  invisible(NULL)
+}
+
 #' Plot a plrd object
 #'
 #' We offer three plot types: "default", "weights", and "combined". These plots
@@ -241,13 +320,13 @@ find_weight_window <- function(x, percentage.cumulative.weights = 0.99) {
 #' are not used to compute the PLRD estimate.
 #'
 #' The "weights" option displays the fitted PLRD weights. It shows two sets of
-#' weights because we use two-fold cross-fitting.
+#' weights since we use two-fold cross-fitting.
 #'
 #' The "combined" option displays both the default plot and the PLRD weights.
 #'
 #' The dashed line marks the threshold, and the dotted lines indicate the window
-#' containing a specified percentage of the cumulative absolute PLRD weight
-#' mass on each side of the threshold.
+#' containing a specified percentage of the cumulative absolute PLRD weight mass
+#' on each side of the threshold.
 #'
 #' @param x A fitted \code{plrd} object returned by \code{plrd()}.
 #' @param type The type of plot to display: \code{"default"}, \code{"weights"},
@@ -259,13 +338,22 @@ find_weight_window <- function(x, percentage.cumulative.weights = 0.99) {
 #' @param spline.df Degrees of freedom of the natural spline used to plot a
 #' representative member of the data-driven function class, constrained to
 #' satisfy the smoothness condition of PLRD.
+#' @param annotate.tau If \code{TRUE}, marks the PLRD estimate with a curly
+#' brace in the plot.
 #' @param ... Additional graphical arguments to customize the plot, such as
-#' \code{xlim}, \code{ylab}, \code{main}, etc.
+#' \code{xlim}, \code{ylim}, \code{xlab}, \code{ylab} and \code{main}.
+#' \code{col} may contain up to three colors for the two sides of the threshold
+#' and the optional PLRD annotation. \code{pch} and \code{cex} may be scalars or
+#' vectors of length two to customize the two sides of the threshold separately.
 #' @return A list of plot coordinates for the main plot and the weight plot,
 #' including the upper and lower bounds of the window containing the specified
 #' percentage of cumulative absolute weights.
 #' @export
-plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, spline.df = 3, ...) {
+plot.plrd = function(x,
+                     type = "default",
+                     percentage.cumulative.weights = .99,
+                     spline.df = 3,
+                     annotate.tau = FALSE, ...) {
   op <- graphics::par(no.readonly = TRUE)
   threshold <- x$threshold
   ge.threshold <- as.numeric(x$X >= threshold) # Introduce to avoid any issues for implementation of fuzzy RD.
@@ -283,7 +371,7 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
     diff.curvatures = x$diff.curvatures
   )
 
-  # Plot model only in a window [threshold - l below, threshold + l above] containing the specified cumulative absolute weights (post-hoc effective support)
+  # Plot model only in a window [threshold - l below, threshold + l above] containing the specified cumulative absolute weights
   windows.effective.support  = find_weight_window(x, percentage.cumulative.weights)
   x_lo = threshold - windows.effective.support$l_below
   x_hi = threshold + windows.effective.support$l_above
@@ -303,6 +391,14 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
   ys1 <- x$gamma.fun.1[[2]]
 
   args = list(...)
+  cols = c("#CC3311", "#009E73", "#332288")
+  if ("col" %in% names(args)) {
+    n.col = min(length(args$col), 3)
+    cols[seq_len(n.col)] = args$col[seq_len(n.col)]
+  }
+  pch = if ("pch" %in% names(args)) rep(args$pch, length.out = 2) else NULL
+  cex = if ("cex" %in% names(args)) rep(args$cex, length.out = 2) else c(.5, .5)
+  args[c("col", "pch", "cex")] = NULL
   if (is.null(dim(x$gamma))) {
     if (!"xlim" %in% names(args)) args$xlim = if (type == "weights") range(xs0, xs1) else range(x$X)
     if (!"ylim" %in% names(args)) args$ylim = if (type == "weights") range(ys0, ys1) else range(x$Y)
@@ -313,23 +409,44 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
       graphics::layout(matrix(1))
       graphics::par(mar = c(4.5, 4.5, 2, 2))
       do.call(graphics::plot, args)
-      graphics::points(x$X, x$Y,
-                       col = c("#CC3311","#009E73")[as.numeric(x$X >= threshold)+1],
-                       cex = .5)
+      graphics::points(
+        x$X, x$Y,
+        col = cols[ge.threshold + 1],
+        pch = if (is.null(pch)) 1 else pch[ge.threshold + 1],
+        cex = cex[ge.threshold + 1]
+      )
       graphics::lines(xx_left,  yy_left,  col = 'black', lwd = 3)
       graphics::lines(xx_right, yy_right, col = 'black', lwd = 3)
       graphics::abline(v = threshold, lwd = 1.5, lty = 2)
       graphics::abline(v = c(x_lo, x_hi), lwd = 1.5, lty = 3)
+      if(annotate.tau){
+        draw_tau_brace(
+          threshold,
+          fit,
+          x$tau.hat,
+          col = cols[3]
+        )
+      }
     } else if (type == "weights"){
       graphics::layout(matrix(1))
       graphics::par(mar = c(4.5, 4.5, 2, 2))
       do.call(graphics::plot, utils::modifyList(args, list(type = "n")))
       if (length (unique(c(xs0, xs1))) > 40) {
-        graphics::points(xs0, ys0, col = "#CC3311", pch = 20, cex = 0.5)
-        graphics::points(xs1, ys1, col = "#009E73", pch = 20, cex = 0.5)
+        graphics::points(
+          xs0, ys0,
+          col = cols[1],
+          pch = if (is.null(pch)) 20 else pch[1],
+          cex = cex[1]
+        )
+        graphics::points(
+          xs1, ys1,
+          col = cols[2],
+          pch = if (is.null(pch)) 20 else pch[2],
+          cex = cex[2]
+        )
       } else {
-        graphics::lines(xs0, ys0, col = "#CC3311", lwd = 1)
-        graphics::lines(xs1, ys1, col = "#009E73", lwd = 1)
+        graphics::lines(xs0, ys0, col = cols[1], lwd = 1)
+        graphics::lines(xs1, ys1, col = cols[2], lwd = 1)
       }
       graphics::abline(v = c(x_lo, x_hi),
                        lwd = 1.5, lty = 3)
@@ -340,13 +457,25 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
       graphics::par(mar = c(0, 4.5, 2, 2))
       do.call(graphics::plot, utils::modifyList(args, list(xaxt = "n", yaxt = "n")))
       graphics::axis(2, las = 1)
-      graphics::points(x$X, x$Y,
-                       col = c("#CC3311","#009E73")[as.numeric(x$X >= threshold)+1],
-                       cex = .5)
+      graphics::points(
+        x$X, x$Y,
+        col = cols[ge.threshold + 1],
+        pch = if (is.null(pch)) 1 else pch[ge.threshold + 1],
+        cex = cex[ge.threshold + 1]
+      )
       graphics::lines(xx_left,  yy_left,  col = 'black', lwd = 3)
       graphics::lines(xx_right, yy_right, col = 'black', lwd = 3)
       graphics::abline(v = threshold, lwd = 1.5, lty = 2)
       graphics::abline(v = c(x_lo, x_hi), lwd = 1.5, lty = 3)
+      if(annotate.tau){
+        draw_tau_brace(
+          threshold,
+          fit,
+          x$tau.hat,
+          width.mult = 1.25,
+          col = cols[3]
+        )
+      }
       graphics::par(mar = c(4.5, 4.5, 0, 2))
       plot(
         NA, type = "n",
@@ -359,11 +488,21 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
       graphics::axis(2, at = pretty(range(ys0, ys1), n = 4),
                      las = 1, cex.axis = 0.9)
       if (length (unique(c(xs0, xs1))) > 40) {
-        graphics::points(xs0, ys0, col = "#CC3311", pch = 20, cex = 0.5)
-        graphics::points(xs1, ys1, col = "#009E73", pch = 20, cex = 0.5)
+        graphics::points(
+          xs0, ys0,
+          col = cols[1],
+          pch = if (is.null(pch)) 20 else pch[1],
+          cex = cex[1]
+        )
+        graphics::points(
+          xs1, ys1,
+          col = cols[2],
+          pch = if (is.null(pch)) 20 else pch[2],
+          cex = cex[2]
+        )
       } else {
-        graphics::lines(xs0, ys0, col = "#CC3311", lwd = 1)
-        graphics::lines(xs1, ys1, col = "#009E73", lwd = 1)
+        graphics::lines(xs0, ys0, col = cols[1], lwd = 1)
+        graphics::lines(xs1, ys1, col = cols[2], lwd = 1)
       }
       graphics::abline(v = c(x_lo, x_hi),
                        lwd = 1.5, lty = 3)

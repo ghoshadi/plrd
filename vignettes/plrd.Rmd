@@ -36,3 +36,19 @@ plot(out, type = "weights")
 # fancy plot option that combines the previous two plots
 plot(out, type = "combined")
 ```
+
+The plotting method accepts standard graphical arguments for further customization.
+
+```{r}
+plot(
+  out,
+  main = "Customized PLRD plot",
+  xlab = "Running variable",
+  ylab = "Outcome",
+  annotate.tau = TRUE,
+  las = 1,
+  cex.lab = 1.2,
+  col = c("red", "green3", "black"),
+  pch = c(1, 16),
+  cex = c(.4, .6)
+)
