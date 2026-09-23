@@ -231,16 +231,39 @@ find_weight_window <- function(x, percentage.cumulative.weights = 0.99) {
 
 #' Plot a plrd object
 #'
-#' @param x plrd object
-#' @param type The type of plot to display. We offer three options: "default", "weights", and "combined".
-#' The "default" option overlays the scatterplot of the original data with black curves showing representative regression functions in our data-driven function class.
-#' The "weights" option displays the PLRD weights. Shows two sets of PLRD weights because we use cross-fitting with two folds.
-#' The "combined" option displays both the scatterplot and the plot of PLRD weights.
-#' The dashed line marks the threshold, and the dotted lines indicate a post-hoc effective support window containing a percentage of the cumulative absolute PLRD weights.
-#' @param percentage.cumulative.weights Percentage of cumulative absolute PLRD weights to include in the visualization (determines the post-hoc effective support).
-#' @param spline.df Degrees of freedom of the natural spline used to plot a representative member of the data-driven function class, constrained to satisfy the smoothness condition of PLRD.
-#' @param ... Additional graphical arguments to customize the plot, such as \code{xlim}, \code{ylab}, \code{main}, etc.
-#' @return A list of plot coordinates for the main plot and the weight plot, including the upper and lower bound of the window that contains the specified percentage of cumulative weights.
+#' We offer three plot types: "default", "weights", and "combined". These plots
+#' are constructed post hoc to visualize different features of the fitted PLRD
+#' procedure.
+#'
+#' The "default" option overlays the scatterplot of the original data with a
+#' pair of black curves showing representative regression functions in our
+#' data-driven function class. These curves are fitted for visualization and
+#' are not used to compute the PLRD estimate.
+#'
+#' The "weights" option displays the fitted PLRD weights. It shows two sets of
+#' weights because we use two-fold cross-fitting.
+#'
+#' The "combined" option displays both the default plot and the PLRD weights.
+#'
+#' The dashed line marks the threshold, and the dotted lines indicate the window
+#' containing a specified percentage of the cumulative absolute PLRD weight
+#' mass on each side of the threshold.
+#'
+#' @param x A fitted \code{plrd} object returned by \code{plrd()}.
+#' @param type The type of plot to display: \code{"default"}, \code{"weights"},
+#' or \code{"combined"}.
+#' @param percentage.cumulative.weights Percentage of cumulative absolute PLRD
+#' weight mass used to determine the displayed window on each side of the
+#' threshold. The default is 0.99, providing a visual approximation to the
+#' estimator's effective support.
+#' @param spline.df Degrees of freedom of the natural spline used to plot a
+#' representative member of the data-driven function class, constrained to
+#' satisfy the smoothness condition of PLRD.
+#' @param ... Additional graphical arguments to customize the plot, such as
+#' \code{xlim}, \code{ylab}, \code{main}, etc.
+#' @return A list of plot coordinates for the main plot and the weight plot,
+#' including the upper and lower bounds of the window containing the specified
+#' percentage of cumulative absolute weights.
 #' @export
 plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, spline.df = 3, ...) {
   op <- graphics::par(no.readonly = TRUE)
