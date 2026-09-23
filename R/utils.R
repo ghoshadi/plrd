@@ -232,14 +232,15 @@ find_weight_window <- function(x, percentage.cumulative.weights = 0.99) {
 #' Plot a plrd object
 #'
 #' @param x plrd object
-#' @param type The type of plot to display. We offer three options: "default", "weights", and "combined". All of these plots are generated post hoc and aim to illustrate how the estimation in PLRD was conducted.
-#' The "default" option shows the scatterplot of the original data overlaid with black curves representing regression functions in our data-driven function class. The dashed line marks the threshold, and the dotted lines indicate the window containing a percentage of the cumulative absolute PLRD weights. The default option with 99% is a good approximation of the effective support
-#' The "weights" option displays the PLRD weights that define the effective support. The absolute distance between the weight curve and the x-axis depicts how much weight was assigned to data falling in the corresponding support interval during the estimation. Note that there are two sets of PLRD weights because we use cross-fitting.
-#' The "combined" option displays both the scatterplot and the plot of PLRD weights, which helps contextualize the original data alongside the effective support.
-#' @param percentage.cumulative.weights The percentage of the cumulative absolute weights that the user wants to display.
-#' @param spline.df Degrees of freedom of the natural spline used to plot a representative member of the data-driven function class, constrained to satisfy the smoothness condition.
+#' @param type The type of plot to display. We offer three options: "default", "weights", and "combined".
+#' The "default" option overlays the scatterplot of the original data with black curves showing representative regression functions in our data-driven function class.
+#' The "weights" option displays the PLRD weights. Shows two sets of PLRD weights because we use cross-fitting with two folds.
+#' The "combined" option displays both the scatterplot and the plot of PLRD weights.
+#' The dashed line marks the threshold, and the dotted lines indicate a post-hoc effective support window containing a percentage of the cumulative absolute PLRD weights.
+#' @param percentage.cumulative.weights Percentage of cumulative absolute PLRD weights to include in the visualization (determines the post-hoc effective support).
+#' @param spline.df Degrees of freedom of the natural spline used to plot a representative member of the data-driven function class, constrained to satisfy the smoothness condition of PLRD.
 #' @param ... Additional graphical arguments to customize the plot, such as \code{xlim}, \code{ylab}, \code{main}, etc.
-#' @return A list of plot coordinates for the main plot and the weight plot, including the upper and lower bound of the window that contains the percentage cumulative weights.
+#' @return A list of plot coordinates for the main plot and the weight plot, including the upper and lower bound of the window that contains the specified percentage of cumulative weights.
 #' @export
 plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, spline.df = 3, ...) {
   op <- graphics::par(no.readonly = TRUE)
@@ -259,12 +260,12 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
     diff.curvatures = x$diff.curvatures
   )
 
-  # Plot model only in a window [threshold - l below, threshold + l above] containing the specified cumulative absolute weights (effective support)
+  # Plot model only in a window [threshold - l below, threshold + l above] containing the specified cumulative absolute weights (post-hoc effective support)
   windows.effective.support  = find_weight_window(x, percentage.cumulative.weights)
   x_lo = threshold - windows.effective.support$l_below
   x_hi = threshold + windows.effective.support$l_above
 
-  # Generate grid on running variable for x coordinates with corresponding y coordinates within effective support
+  # Generate grid on running variable for x coordinates with corresponding y coordinates
   step = min(threshold - x_lo, x_hi - threshold) / 200
   xx_left  = seq(x_lo, threshold, by = step)
   xx_right = seq(threshold, x_hi, by = step)
@@ -360,7 +361,7 @@ plot.plrd = function(x, type = "default", percentage.cumulative.weights = .99, s
     gamma = list(
       x_coordinates = c(xs0, xs1),
       y_coordinates = c(ys0, ys1),
-      window_weights = c(x_lo, x_hi))
+      weight_window = c(x_lo, x_hi))
   ))
 }
 

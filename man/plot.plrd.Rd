@@ -15,19 +15,20 @@
 \arguments{
 \item{x}{plrd object}
 
-\item{type}{The type of plot to display. We offer three options: "default", "weights", and "combined". All of these plots are generated post hoc and aim to illustrate how the estimation in PLRD was conducted.
-The "default" option shows the scatterplot of the original data overlaid with black curves representing regression functions in our data-driven function class. The dashed line marks the threshold, and the dotted lines indicate the window containing a percentage of the cumulative absolute PLRD weights. The default option with 99\% is a good approximation of the effective support
-The "weights" option displays the PLRD weights that define the effective support. The absolute distance between the weight curve and the x-axis depicts how much weight was assigned to data falling in the corresponding support interval during the estimation. Note that there are two sets of PLRD weights because we use cross-fitting.
-The "combined" option displays both the scatterplot and the plot of PLRD weights, which helps contextualize the original data alongside the effective support.}
+\item{type}{The type of plot to display. We offer three options: "default", "weights", and "combined".
+The "default" option overlays the scatterplot of the original data with black curves showing representative regression functions in our data-driven function class.
+The "weights" option displays the PLRD weights. Shows two sets of PLRD weights because we use cross-fitting with two folds.
+The "combined" option displays both the scatterplot and the plot of PLRD weights.
+The dashed line marks the threshold, and the dotted lines indicate a post-hoc effective support window containing a percentage of the cumulative absolute PLRD weights.}
 
-\item{percentage.cumulative.weights}{The percentage of the cumulative absolute weights that the user wants to display.}
+\item{percentage.cumulative.weights}{Percentage of cumulative absolute PLRD weights to include in the visualization (determines the post-hoc effective support).}
 
-\item{spline.df}{Degrees of freedom of the natural spline used to plot a representative member of the data-driven function class, constrained to satisfy the smoothness condition.}
+\item{spline.df}{Degrees of freedom of the natural spline used to plot a representative member of the data-driven function class, constrained to satisfy the smoothness condition of PLRD.}
 
 \item{...}{Additional graphical arguments to customize the plot, such as \code{xlim}, \code{ylab}, \code{main}, etc.}
 }
 \value{
-A list of plot coordinates for the main plot and the weight plot, including the upper and lower bound of the window that contains the percentage cumulative weights.
+A list of plot coordinates for the main plot and the weight plot, including the upper and lower bound of the window that contains the specified percentage of cumulative weights.
 }
 \description{
 Plot a plrd object
