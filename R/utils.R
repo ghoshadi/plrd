@@ -576,6 +576,8 @@ IK_bandwidth <- function(Y, X, threshold,
 
   # Pilot third derivative and bandwidths for second derivatives
   m3 <- 6 * unname(stats::lm.fit(cbind(1, right, x, x^2, x^3), Y)$coefficients[5])
+  if (is.na(m3))
+    stop("The IK cubic pilot regression is rank-deficient.")
 
   h2 <- 7200^(1/7) *
     (sigma2 / (fc * m3^2))^(1/7) *
@@ -591,6 +593,11 @@ IK_bandwidth <- function(Y, X, threshold,
     2 * unname(stats::lm.fit(cbind(1, x[i.plus], x[i.plus]^2), Y[i.plus])$coefficients[3])
   )
 
+  if (is.na(m2[1]))
+    stop("The IK quadratic pilot regression is rank-deficient below the threshold.")
+  if (is.na(m2[2]))
+    stop("The IK quadratic pilot regression is rank-deficient above the threshold.")
+
   # Regularization and optimal bandwidth
   r <- 2160 * sigma2 / (n2 * h2^4)
   CK <- switch(kernel,
@@ -603,6 +610,12 @@ IK_bandwidth <- function(Y, X, threshold,
     (sum(sigma2) / (fc * ((m2[2] - m2[1])^2 + sum(r))))^(1/5) *
     n^(-1/5)
 
+  if (h.opt <= 0)
+    stop("The calculated IK bandwidth is not positive.")
+
+  if (!is.finite(h.opt))
+    stop("The calculated IK bandwidth is not finite.")
+
   # Kernel weights, normalized to sum to one
   u <- abs(x / h.opt)
   weights <- switch(kernel,
@@ -610,9 +623,6 @@ IK_bandwidth <- function(Y, X, threshold,
                     uniform      = as.numeric(u <= 1),
                     epanechnikov = pmax(1 - u^2, 0)
   )
-
-  if (!any(left & u <= 1) || !any(right & u <= 1))
-    stop("Insufficient observations in the calculated bandwidth.")
 
   list(
     bandwidth = unname(h.opt),
