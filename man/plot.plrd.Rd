@@ -9,20 +9,56 @@
   type = "default",
   percentage.cumulative.weights = 0.99,
   spline.df = 3,
+  annotate.tau = FALSE,
   ...
 )
 }
 \arguments{
-\item{x}{plrd object}
+\item{x}{A fitted \code{plrd} object returned by \code{plrd()}.}
 
-\item{type}{Type of plot the user wants to see. We offer three options: "default", "weights", and "combined". The "default" option shows the scatterplot of the original data with black curves that are representative regression functions in our data-driven function class. The dashed line shows the threshold, and the dotted lines indicate the window containing a percentage (99\% by default) of the cumulative absolute plrd weights. The "weights" option plots plrd weights (note, two sets of plrd weights because we use cross-fitting). The "combined" option is a fancy plot combining both the scatterplot and the plot of plrd weights.}
+\item{type}{The type of plot to display: \code{"default"}, \code{"weights"},
+or \code{"combined"}.}
 
-\item{percentage.cumulative.weights}{The percentage of the cumulative absolute weights user wants to keep (for visualization purposes only)}
+\item{percentage.cumulative.weights}{Percentage of cumulative absolute PLRD
+weight mass used to determine the displayed window on each side of the
+threshold. The default is 0.99, providing a visual approximation to the
+estimator's effective support.}
 
-\item{spline.df}{Degrees of freedom of the natural spline used to plot a representative member of the data-driven function class, constrained to satisfy the smoothness condition.}
+\item{spline.df}{Degrees of freedom of the natural spline used to plot a
+representative member of the data-driven function class, constrained to
+satisfy the smoothness condition of PLRD.}
 
-\item{...}{Additional graphical arguments to customize the plot, such as \code{xlim}, \code{ylab}, \code{main}, etc.}
+\item{annotate.tau}{If \code{TRUE}, marks the PLRD estimate with a curly
+brace in the plot.}
+
+\item{...}{Additional graphical arguments to customize the plot, such as
+\code{xlim}, \code{ylim}, \code{xlab}, \code{ylab} and \code{main}.
+\code{col} may contain up to three colors for the two sides of the threshold
+and the optional PLRD annotation. \code{pch} and \code{cex} may be scalars or
+vectors of length two to customize the two sides of the threshold separately.}
+}
+\value{
+A list of plot coordinates for the main plot and the weight plot,
+including the upper and lower bounds of the window containing the specified
+percentage of cumulative absolute weights.
 }
 \description{
-Plot a plrd object
+We offer three plot types: "default", "weights", and "combined". These plots
+are constructed post hoc to visualize different features of the fitted PLRD
+procedure.
+}
+\details{
+The "default" option overlays the scatterplot of the original data with a
+pair of black curves showing representative regression functions in our
+data-driven function class. These curves are fitted for visualization and
+are not used to compute the PLRD estimate.
+
+The "weights" option displays the fitted PLRD weights. It shows two sets of
+weights since we use two-fold cross-fitting.
+
+The "combined" option displays both the default plot and the PLRD weights.
+
+The dashed line marks the threshold, and the dotted lines indicate the window
+containing a specified percentage of the cumulative absolute PLRD weight mass
+on each side of the threshold.
 }
