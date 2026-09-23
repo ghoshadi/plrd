@@ -3,6 +3,9 @@ template:
   bootstrap: 5
   math-rendering: mathjax
 
+figures:
+  dev: grDevices::png
+
 navbar:
   left:
   - text: "Get started"

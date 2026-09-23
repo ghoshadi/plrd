@@ -283,7 +283,7 @@ draw_tau_brace <- function(threshold, fit, tau.hat,
     col = col, lwd = 1.8, xpd = NA
   )
 
-  label = expression(widehat(tau)[scriptstyle(plain(plrd))])
+  label = expression(widehat(tau)[plain(plrd)])
   label.x = threshold + side*(bw + .004*xr)
   label.width = graphics::strwidth(label, cex = 1.15, family = "mono")
   label.height = graphics::strheight(label, cex = 1.15, family = "mono")
