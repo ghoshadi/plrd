@@ -205,6 +205,7 @@ fit_constrained_spline = function(y, x, w, spline.df, B, diff.curvatures) {
 #' @param percentage.cumulative.weights Share of cumulative absolute weights to retain on each side.
 #' @return A list with per-side distances (\code{l_below}, \code{l_above}) from the threshold.
 #' @keywords internal
+#' @noRd
 find_weight_window <- function(x, percentage.cumulative.weights = 0.99) {
   if (percentage.cumulative.weights <= 0 || percentage.cumulative.weights > 1) {
     stop("`percentage.cumulative.weights` must be in (0, 1].")
@@ -310,6 +311,7 @@ draw_tau_brace <- function(threshold, fit, tau.hat,
 
 #' Plot a plrd object
 #'
+#' @description
 #' We offer three plot types: "default", "weights", and "combined". These plots
 #' are constructed post hoc to visualize different features of the fitted PLRD
 #' procedure.

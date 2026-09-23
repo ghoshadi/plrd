@@ -46,8 +46,7 @@ percentage of cumulative absolute weights.
 We offer three plot types: "default", "weights", and "combined". These plots
 are constructed post hoc to visualize different features of the fitted PLRD
 procedure.
-}
-\details{
+
 The "default" option overlays the scatterplot of the original data with a
 pair of black curves showing representative regression functions in our
 data-driven function class. These curves are fitted for visualization and
