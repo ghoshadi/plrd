@@ -46,7 +46,7 @@ get.Lipschitz.constant <- function(y, x, threshold,
                   abs(s2[1] - stats::qnorm(alpha.B/2) * s2[2]))
     B <- max(B1, B2)
   }
-  eps = stats::sd(y)/100
+  eps = stats::sd(y)/(100*(stats::sd(x)^3))
   return(B_hat <- max(B, eps))
 }
 

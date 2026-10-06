@@ -134,15 +134,15 @@ plrd <- function (Y, X, threshold, W = NULL,
                        B.fold1 = B.fold2 = B.conservative
                      }
                    } else {
-                     B.fold1 = B.fold2 = Lipschitz.constant
+                     B.fold1 = B.fold2 = Lipschitz.constant * (max.window^3) / scale.Y
                      folds <- sample(rep(1:2, length.out = n))
                      fold2.idx <- which(folds == 1)
                      fold1.idx <- which(folds != 1)
                    }
   )
   if(verbose) message("Estimated Lipschitz constant for curvature for cross-fitting folds:",
-                          round(B.fold1*(max.window^3)*scale.Y,3),
-                          round(B.fold2*(max.window^3)*scale.Y,3)) # Adjusted for scaling
+                          round(B.fold1*scale.Y/(max.window^3),3),
+                          round(B.fold2*scale.Y/(max.window^3),3)) # Adjusted for scaling
 
   # Estimation of sigma.sq to be used for fold1.idx
   sigma.sq.fold1 = summary(stats::lm(Y.scaled[fold2.idx] ~ X.scaled[fold2.idx] * W[fold2.idx]))$sigma^2
@@ -191,7 +191,7 @@ plrd <- function (Y, X, threshold, W = NULL,
 
   tau.hat = (out_train$tau.hat + out_test$tau.hat)/2 * scale.Y
   max.bias = (out_train$max.bias + out_test$max.bias)/2 * scale.Y
-  Lipschitz.constant = (B.fold1+B.fold2)/2 * (max.window^3) * scale.Y
+  Lipschitz.constant = ((B.fold1+B.fold2)/2) * scale.Y / (max.window^3)
   gamma = rep(0, n)
   gamma[fold2.idx] = out_test$gamma/2; gamma[fold1.idx] = out_train$gamma/2
   sigma.sq = (sigma.sq.fold2 + sigma.sq.fold1)/2 * (scale.Y^2)
