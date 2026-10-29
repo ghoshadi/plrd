@@ -21,7 +21,8 @@ plrd(
   spline.df = NULL,
   seed = 42,
   use.homoskedastic.variance = FALSE,
-  verbose = FALSE
+  verbose = FALSE,
+  optimizer = c("cvxr", "quadprog")
 )
 }
 \arguments{
@@ -60,6 +61,11 @@ improving computational performance.}
 \item{use.homoskedastic.variance}{Whether confidence intervals should be built assuming homoskedasticity. As default we use FALSE (i.e., use heteroscedastic standard errors).}
 
 \item{verbose}{Whether the optimizer should print progress information.}
+
+\item{optimizer}{Which formulation of the minimax problem to solve. "cvxr" (default)
+solves the primal problem exactly with CVXR, eliminating the supremum over
+the function class in closed form; "quadprog" solves the dual with quadprog
+(the original implementation). use.spline and spline.df apply only to "quadprog".}
 }
 \value{
 A trained plrd object containing the PLRD estimator, half width of confidence interval and other auxiliary objects such as MSE-optimal weights, worst-case bias, Lipschitz constant, etc.

@@ -22,6 +22,10 @@
 #' @param seed Random seed for reproducibility.
 #' @param use.homoskedastic.variance Whether confidence intervals should be built assuming homoskedasticity. As default we use FALSE (i.e., use heteroscedastic standard errors).
 #' @param verbose Whether the optimizer should print progress information.
+#' @param optimizer Which formulation of the minimax problem to solve. "cvxr" (default)
+#'                  solves the primal problem exactly with CVXR, eliminating the supremum over
+#'                  the function class in closed form; "quadprog" solves the dual with quadprog
+#'                  (the original implementation). use.spline and spline.df apply only to "quadprog".
 #' @return A trained plrd object containing the PLRD estimator, half width of confidence interval and other auxiliary objects such as MSE-optimal weights, worst-case bias, Lipschitz constant, etc.
 #'
 #' @references Ghosh, A., Imbens, G., & Wager, S. (2025).
@@ -55,8 +59,10 @@ plrd <- function (Y, X, threshold, W = NULL,
                   spline.df = NULL,
                   seed = 42,
                   use.homoskedastic.variance = FALSE,
-                  verbose = FALSE)
+                  verbose = FALSE,
+                  optimizer = c("cvxr", "quadprog"))
   {
+  optimizer = match.arg(optimizer)
   # Input checks:
   X = as.vector(X); Y = as.vector(Y)
   if(length(X)!=length(Y)){
@@ -173,7 +179,8 @@ plrd <- function (Y, X, threshold, W = NULL,
                          use.spline = use.spline,
                          spline.df = spline.df,
                          use.homoskedastic.variance = use.homoskedastic.variance,
-                         verbose = verbose)
+                         verbose = verbose,
+                         optimizer = optimizer)
 
   out_test = plrd.optim(Y = Y.scaled[fold2.idx],
                         X = X.scaled[fold2.idx],
@@ -187,7 +194,8 @@ plrd <- function (Y, X, threshold, W = NULL,
                         use.spline = use.spline,
                         spline.df = spline.df,
                         use.homoskedastic.variance = use.homoskedastic.variance,
-                        verbose = verbose)
+                        verbose = verbose,
+                        optimizer = optimizer)
 
   tau.hat = (out_train$tau.hat + out_test$tau.hat)/2 * scale.Y
   max.bias = (out_train$max.bias + out_test$max.bias)/2 * scale.Y
@@ -264,6 +272,7 @@ plrd <- function (Y, X, threshold, W = NULL,
 #' @param spline.df Number of degrees of freedom (per running variable) used for spline computation.
 #' @param use.homoskedastic.variance Whether confidence intervals should be built assuming homoskedasticity.
 #' @param verbose whether the optimizer should print progress information
+#' @param optimizer "cvxr" (primal, exact, via CVXR) or "quadprog" (dual, via quadprog).
 #'
 #' @return Parts of the desired plrd object for the specific sample split
 #'
@@ -279,7 +288,9 @@ plrd.optim <- function (Y = NULL, X = NULL, threshold = NULL, W = NULL,
                         use.spline = TRUE,
                         spline.df = NULL,
                         use.homoskedastic.variance = FALSE,
-                        verbose = FALSE) {
+                        verbose = FALSE,
+                        optimizer = c("cvxr", "quadprog")) {
+  optimizer = match.arg(optimizer)
   if(is.null(W)){
     W = as.numeric(X >= threshold)
   }
@@ -318,6 +329,18 @@ plrd.optim <- function (Y = NULL, X = NULL, threshold = NULL, W = NULL,
   centering.matrix = Matrix::sparseMatrix(dims = c(length(zeroed.idx), num.bucket),
                                           i = 1:length(zeroed.idx), j = zeroed.idx,
                                           x = rep(1, length(zeroed.idx))) # sparse 3xN with Id.3 in the zeroed place
+  if(optimizer == "cvxr"){
+    # Solve the primal directly (see R/cvxr.R); no spline basis or ridge needed
+    soln = plrd.primal.cvxr(xx.centered = xx.centered, bin.width = bin.width,
+                            zeroed.idx = zeroed.idx,
+                            counts.0 = X.counts - W.counts, counts.1 = W.counts,
+                            realized.idx.0 = realized.idx.0, realized.idx.1 = realized.idx.1,
+                            Lipschitz.constant = Lipschitz.constant, sigma.sq = sigma.sq,
+                            diff.curvatures = diff.curvatures, verbose = verbose)
+    gamma.0 = soln$gamma.0
+    gamma.1 = soln$gamma.1
+    t.hat = soln$t.hat
+  } else { # optimizer == "quadprog": the original dual formulation, unchanged
   if(use.spline){
     # Setting up B-spline basis; spline.df = 40 as default
     basis.mat.raw = splines::bs(xx.grid, degree = 3, df = spline.df, intercept = TRUE)
@@ -401,6 +424,7 @@ plrd.optim <- function (Y = NULL, X = NULL, threshold = NULL, W = NULL,
   gamma.0[realized.idx.0] = -soln$solution[1:num.realized.0]/sigma.sq/2
   gamma.1[realized.idx.1] = -soln$solution[num.realized.0 + 1:num.realized.1]/sigma.sq/2
   t.hat = soln$solution[num.realized.0 + num.realized.1 + 1]/(2 * Lipschitz.constant) # the solution is lambda.1/B, hence solution/2B gives t.hat
+  } # end optimizer == "quadprog"
 
   # Final gamma using on gamma.0 and gamma.1
   gamma = rep(0, length(W))

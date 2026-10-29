@@ -22,7 +22,7 @@ test_that("plrd has not changed", {
   X = runif(n, -3, 3)
   W = as.numeric(X >= threshold)
   Y = (1 + 2*W)*(1 + X^2) + 1 / (1 + exp(X)) + rnorm(n, sd = .5)
-  out = plrd(Y, X, threshold)
+  out = plrd(Y, X, threshold, optimizer = "quadprog")
   expect_equal(out$tau.hat, 6.0581497597, tol = 1e-6)
   expect_equal(out$sampling.se, 0.04943550781, tol = 1e-6)
 })

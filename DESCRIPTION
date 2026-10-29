@@ -12,6 +12,7 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Imports:
+    CVXR (>= 1.9.3),
     Matrix,
     quadprog,
     withr
